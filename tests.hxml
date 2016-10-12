@@ -1,0 +1,4 @@
+-cp tests
+-main RunTests
+
+-lib buddy
