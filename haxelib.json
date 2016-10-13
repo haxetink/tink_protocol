@@ -1,7 +1,8 @@
 {
-  "name": "websocket",
+  "name": "tink_protocol",
   "license": "MIT",
   "tags": [
+    "protocol",
     "websocket"
   ],
   "classPath": "src",
