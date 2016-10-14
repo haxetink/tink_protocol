@@ -30,8 +30,8 @@ class WebSocket implements Client<Message> {
 	public function connect(send:Stream<Message>):Stream<Message> {
 		var out = send.map(function(m) return Frame.fromMessage(m).toBytes());
 		return protocol.connect(out).merge(function(bytes):Option<Message> {
-			var last:Frame = bytes[bytes.length - 1];
-			if(!last.fin) return None;
+			var last = bytes[bytes.length - 1];
+			if(last.get(0) >> 7 != 1) return None;
 			
 			var frames = [for(b in bytes) (b:Frame)];
 			
