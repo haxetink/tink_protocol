@@ -15,13 +15,24 @@ matrix:
   allow_failures:
     - haxe: development
     
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update;
+      brew install mongodb;
+      sudo mkdir -p /data/db;
+      sudo mongod &
+    else
+      sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927;
+      echo "deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list;
+      sudo apt-get update;
+      sudo apt-get install -y mongodb-org;
+    fi
+    
 install:
   - haxelib install travix
+  - haxelib git bson https://github.com/kevinresol/bson
+  - haxelib git tink_tcp https://github.com/haxetink/tink_tcp
   - haxelib run travix install
 
 script:
-  - haxelib run travix interp
-  - haxelib run travix neko
   - haxelib run travix node
-  - haxelib run travix python
-  - haxelib run travix java
