@@ -14,16 +14,16 @@ import tink.io.Duplex;
 import tink.streams.Accumulator;
 import tink.streams.Stream;
 import tink.streams.StreamStep;
-import tink.protocol.Client;
+import tink.protocol.Client as TinkClient;
 import tink.protocol.websocket.Parser;
 import tink.protocol.websocket.Frame;
 import tink.protocol.websocket.Message;
 
 using tink.CoreApi;
 
-class WebSocket implements Client<Message> {
+class Client implements TinkClient<Message> {
 	
-	var protocol:Client<Bytes>;
+	var protocol:TinkClient<Bytes>;
 	
 	public function new(duplex:Duplex, url:Url) {
 		this.protocol = new Protocol(duplex, url);
@@ -73,16 +73,14 @@ class WebSocket implements Client<Message> {
 		return new Sender();
 }
 
-private class Protocol implements Client<Bytes> {
+class Protocol implements TinkClient<Bytes> {
 	
-	var source:Source;
-	var sink:Sink;
+	var duplex:Duplex;
 	var host:Host;
 	var uri:String;
 	
 	public function new(duplex:Duplex, url:Url) {
-		this.source = duplex.source;
-		this.sink = duplex.sink;
+		this.duplex = duplex;
 		this.host = url.host;
 		this.uri = url.path;
 	}
@@ -91,9 +89,9 @@ private class Protocol implements Client<Bytes> {
 		
 		var header = new OutgoingHandshakeRequestHeader(host, uri);
 		var accept = header.accept;
-		(header.toString():Source).pipeTo(sink).handle(function(_) {});
+		(header.toString():Source).pipeTo(duplex.sink).handle(function(_) {});
 		
-		return source.parse(IncomingHandshakeResponseHeader.parser()).map(function(o) switch o {
+		return duplex.source.parse(IncomingHandshakeResponseHeader.parser()).map(function(o) switch o {
 			case Success({data: header, rest: rest}):
 				switch header.validate(accept) {
 					case Success(_): // ok
@@ -101,7 +99,7 @@ private class Protocol implements Client<Bytes> {
 				}
 				
 				// outgoing
-				send.forEachAsync(function(bytes) return (bytes:Source).pipeTo(sink).map(function(o) return true));
+				send.forEachAsync(function(bytes) return (bytes:Source).pipeTo(duplex.sink).map(function(o) return true));
 				
 				// incoming
 				return Success(rest.parseStream(new Parser()));

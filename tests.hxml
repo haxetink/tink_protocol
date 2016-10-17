@@ -3,3 +3,4 @@
 
 -lib buddy
 -lib tink_tcp
+-lib bson

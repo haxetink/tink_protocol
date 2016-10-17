@@ -1,6 +1,7 @@
 tests.hxml
 
 -lib travix
--lib websocket
+-lib tink_protocol
+-lib bson
 -js bin/test.js
 -lib hxnodejs
