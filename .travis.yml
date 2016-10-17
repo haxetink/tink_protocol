@@ -30,9 +30,10 @@ before_install:
     
 install:
   - haxelib install travix
+  - haxelib run travix install
   - haxelib git bson https://github.com/kevinresol/bson
   - haxelib git tink_tcp https://github.com/haxetink/tink_tcp
-  - haxelib run travix install
+  - haxelib git tink_io https://github.com/haxetink/tink_io
 
 script:
   - haxelib run travix node
