@@ -34,6 +34,7 @@ install:
   - haxelib git bson https://github.com/kevinresol/bson
   - haxelib git tink_tcp https://github.com/haxetink/tink_tcp
   - haxelib git tink_io https://github.com/haxetink/tink_io
+  - haxelib git tink_streams https://github.com/haxetink/tink_streams
 
 script:
   - haxelib run travix node
