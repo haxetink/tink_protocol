@@ -11,15 +11,14 @@ using buddy.Should;
 class TestWebSocket extends BuddySuite {
 	public function new() {
 		
-		timeoutMs = 1500;
 		describe("WebSocket", {
 			it("should work with the echo server", function(done) {
 				var host = 'echo.websocket.org';
 				var connection = Connection.establish({host: host, port: 80});
-				var ws = new WebSocket(new ProtocolClient(connection.source, connection.sink, new Host(host), '/'));
+				var ws = new WebSocket(connection, 'http://$host');
 				
 				var c = 0;
-				var n = 3; // TODO: won't work when > 3
+				var n = 7;
 				var sender = WebSocket.sender();
 				ws.connect(sender).forEach(function(message) {
 					switch message {

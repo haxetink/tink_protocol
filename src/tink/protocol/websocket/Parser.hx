@@ -31,6 +31,7 @@ class Parser implements StreamParser<Bytes> {
 	}
 	
 	public function progress(buffer:Buffer) {
+		result = None;
 		buffer.writeTo(this);
 		return Success(result);
 	}
@@ -39,7 +40,6 @@ class Parser implements StreamParser<Bytes> {
 		if(len < required) return 0;
 		switch length {
 			case 0:
-				result = None;
 				var secondByte = bytes.get(start + 1);
 				mask = secondByte >> 7 == 1;
 				required = switch secondByte & 127 {

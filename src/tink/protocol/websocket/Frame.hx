@@ -28,18 +28,6 @@ abstract Frame(FrameBase) from FrameBase to FrameBase {
 	public static inline function encode(decoded:Bytes, key:Bytes)
 		return FrameBase.encode(decoded, key);
 	
-	// @:from
-	// public static inline function fromServerMessage(message:ServerMessage) {
-	// 	return fromMessage(message);
-	// }
-	
-	// @:from
-	// public static inline function fromClientMessage(message:ClientMessage) {
-	// 	var key = Bytes.alloc(4);
-	// 	for(i in 0...4) key.set(i, Std.random(0xff));
-	// 	return fromMessage(message, key);
-	// }
-	
 	public static function fromMessage(message:Message, ?maskingKey:Bytes) {
 		var opcode = 0;
 		var payload = null;

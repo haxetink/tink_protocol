@@ -2,3 +2,4 @@
 -main RunTests
 
 -lib buddy
+-lib tink_tcp

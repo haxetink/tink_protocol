@@ -4,14 +4,14 @@ import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
 import haxe.crypto.*;
 import tink.url.Host;
-import tink.tcp.Connection;
-import tink.tcp.Endpoint;
 import tink.http.Request;
 import tink.http.Response;
 import tink.http.Header;
 import tink.Url;
 import tink.io.Source;
 import tink.io.Sink;
+import tink.io.Duplex;
+import tink.streams.Accumulator;
 import tink.streams.Stream;
 import tink.streams.StreamStep;
 import tink.protocol.Client;
@@ -22,13 +22,23 @@ import tink.protocol.websocket.Message;
 using tink.CoreApi;
 
 class WebSocket implements Client<Message> {
+	
 	var protocol:Client<Bytes>;
-	public function new(protocol:Client<Bytes>) {
-		this.protocol = protocol;
+	
+	public function new(duplex:Duplex, url:Url) {
+		this.protocol = new Protocol(duplex, url);
 	}
 	
 	public function connect(send:Stream<Message>):Stream<Message> {
-		var out = send.map(function(m) return Frame.fromMessage(m).toBytes());
+		
+		// convert outgoing messages into bytes
+		var key = Bytes.alloc(4); // message from client should always be masked (TODO: citation needed)
+		var out = send.map(function(m) {
+			for(i in 0...4) key.set(i, Std.random(0xff));
+			return Frame.fromMessage(m, key).toBytes();
+		});
+		
+		// combine and convert incoming bytes into messages
 		return protocol.connect(out).merge(function(bytes):Option<Message> {
 			var last = bytes[bytes.length - 1];
 			if(last.get(0) >> 7 != 1) return None;
@@ -63,39 +73,31 @@ class WebSocket implements Client<Message> {
 		return new Sender();
 }
 
-class ProtocolClient implements Client<Bytes> {
+private class Protocol implements Client<Bytes> {
 	
 	var source:Source;
 	var sink:Sink;
 	var host:Host;
-	var uri:Url;
+	var uri:String;
 	
-	public function new(source:Source, sink:Sink, host:Host, uri:Url) {
-		this.source = source;
-		this.sink = sink;
-		this.host = host;
-		this.uri = uri;
+	public function new(duplex:Duplex, url:Url) {
+		this.source = duplex.source;
+		this.sink = duplex.sink;
+		this.host = url.host;
+		this.uri = url.path;
 	}
 	
 	public function connect(send:Stream<Bytes>):Stream<Bytes> {
 		
-		var key = Base64.encode(Sha1.make(Bytes.ofString(Std.string(Math.random()))));
-		var accept = Base64.encode(Sha1.make(Bytes.ofString(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
-		var header = new OutgoingRequestHeader(GET, host, uri, [
-			new HeaderField('Upgrade', 'websocket'),
-			new HeaderField('Connection', 'Upgrade'),
-			new HeaderField('Sec-WebSocket-Key', key),
-			new HeaderField('Sec-WebSocket-Version', '13'),
-		]);
-		
+		var header = new OutgoingHandshakeRequestHeader(host, uri);
+		var accept = header.accept;
 		(header.toString():Source).pipeTo(sink).handle(function(_) {});
 		
-		return source.parse(ResponseHeader.parser()).map(function(o) switch o {
+		return source.parse(IncomingHandshakeResponseHeader.parser()).map(function(o) switch o {
 			case Success({data: header, rest: rest}):
-				if(header.statusCode != 101) return Failure(new Error('Unexpected response status code'));
-				switch header.byName('sec-websocket-accept') {
-					case Success(v) if(v == accept):
-					default: return Failure(new Error('Invalid accept'));
+				switch header.validate(accept) {
+					case Success(_): // ok
+					case Failure(f): return Failure(f);
 				}
 				
 				// outgoing
@@ -111,38 +113,6 @@ class ProtocolClient implements Client<Bytes> {
 	
 }
 
-class Sender extends StepWise<Message> {
-	
-	var pending:List<FutureTrigger<StreamStep<Message>>>;
-	var triggered:List<FutureTrigger<StreamStep<Message>>>;
-	
-	
-	public function new() {
-		pending = new List();
-		triggered = new List();
-	}
-	
-	override function next():Future<StreamStep<Message>> {
-		return switch triggered.pop() {
-			case null:
-				var trigger = Future.trigger();
-				pending.add(trigger);
-				trigger;
-			case trigger:
-				trigger;
-		}
-	}
-	
-	public function send(message:Message) {
-		var trigger = switch pending.pop() {
-			case null:
-				var trigger = Future.trigger();
-				triggered.add(trigger);
-				trigger;
-			case trigger:
-				trigger;
-		}
-		trigger.trigger(Data(message));
-	}
+class Sender extends Accumulator<Message> {
+	public inline function send(m:Message) yield(Data(m));
 }
-
