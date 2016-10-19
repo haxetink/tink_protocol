@@ -13,7 +13,7 @@ import tink.protocol.Client as TinkClient;
 using tink.CoreApi;
 using StringTools;
 
-class Client implements TinkClient<Response, Query> {
+class Client implements TinkClient<RawResponse, Query> {
 	
 	var protocol:Protocol;
 	
@@ -21,9 +21,9 @@ class Client implements TinkClient<Response, Query> {
 		this.protocol = new Protocol(duplex);
 	}
 	
-	public function connect(send:Stream<Query>):Stream<Response> {
+	public function connect(send:Stream<Query>):Stream<RawResponse> {
 		var out = send.map(function(query) return query.toBytes());
-		return protocol.connect(out).map(function(bytes):Response return bytes);
+		return protocol.connect(out).map(function(bytes):RawResponse return bytes);
 	}
 	
 	public static function sender()

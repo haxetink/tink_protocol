@@ -20,16 +20,19 @@ class TestRethinkDB extends BuddySuite {
 		timeoutMs = 1000;
 		describe("RethinkDB", {
 			describe("Client", {
-				it("should list collections in database", function(done) {
+				it("should list users in database", function(done) {
 					var client = new Client(Connection.establish(28015));
 					var sender = Client.sender();
 					client.connect(sender).forEach(function(res) {
-						trace(haxe.Json.stringify(res));
+						trace(res.json);
 						done();
 						return false;
 					});
 					
-					sender.send(new Query(1, new Term(1, Str('foo')), haxe.Int64.make(0, 1)));
+					var db = new Term(DB, [new Term(DATUM, Str('rethinkdb'))]);
+					var table = new Term(TABLE, [db, new Term(DATUM, Str('users'))]);
+					
+					sender.send(new Query(START, table, haxe.Int64.make(0, 1)));
 				});
 				
 			});

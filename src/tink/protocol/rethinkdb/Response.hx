@@ -8,17 +8,21 @@ abstract Response(ResponseBase) from ResponseBase to ResponseBase {
 	@:from
 	public static function fromBytes(bytes:Bytes):Response {
 		var token = Int64.make(bytes.getInt32(0), bytes.getInt32(4));
-		var res = haxe.Json.parse(bytes.sub(12, bytes.length - 12).toString());
+		var json = bytes.sub(12, bytes.length - 12).toString();
+		var res = haxe.Json.parse(json);
 		
 		var type:ResponseType = res.t;
 		
 		var response = switch type {
 			case SUCCESS_ATOM | SERVER_INFO | CLIENT_ERROR | COMPILE_ERROR | RUNTIME_ERROR: Datum.fromDynamic(res.r[0]);
-			case SUCCESS_SEQUENCE | SUCCESS_PARTIAL: Datum.fromDynamic(res.r);
+			case SUCCESS_SEQUENCE | SUCCESS_PARTIAL: Datum.DatumBase.Arr([for(i in (res.r:Array<Dynamic>)) Datum.fromDynamic(i)]);
 			case WAIT_COMPLETE: null;
 		}
 		
-		return new ResponseBase(res.t, token, response);
+		var backtrace = res.b; // TODO: parse it
+		var profile = Datum.fromDynamic(res.p); // TODO: parse it
+		var notes = res.n;
+		return new ResponseBase(res.t, token, response, backtrace, profile, notes);
 	}
 }
 
@@ -31,10 +35,13 @@ class ResponseBase {
 	public var notes:Array<ResponseNote>;
 	public var error_type:ErrorType;
 	
-	public function new(type, token, response) {
+	public function new(type, token, response, backtrace, profile, notes) {
 		this.type = type;
 		this.token = token;
 		this.response = response;
+		this.backtrace = backtrace;
+		this.profile = profile;
+		this.notes = notes;
 	}
 }
 

@@ -29,7 +29,7 @@ class Query {
 		out.writeInt32(token.high);
 		out.writeInt32(token.low);
 		
-		var serializedQuery = query.toString();
+		var serializedQuery = '[$type,${query.toString()},{}]';
 		out.writeInt32(serializedQuery.length);
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
@@ -37,10 +37,6 @@ class Query {
 		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
-	}
-	
-	public static function fromBytes(bytes:Bytes) {
-		
 	}
 }
 

@@ -1,5 +1,6 @@
 package tink.protocol.rethinkdb;
 
+import haxe.Json;
 import haxe.io.Bytes;
 import haxe.io.BytesOutput;
 
@@ -11,7 +12,7 @@ class Term {
 	public var args:Array<Term>;
 	public var optargs:Array<Named<Term>>;
 	
-	public function new(type, datum, ?args, ?optargs) {
+	public function new(type:TermType, ?datum:Datum, ?args:Array<Term>, ?optargs:Array<Named<Term>>) {
 		this.type = type;
 		this.datum = datum;
 		this.args = args;
@@ -19,7 +20,13 @@ class Term {
 	}
 	
 	public function toString() {
-		return '[$type,$datum,{}]';
+		return switch type {
+			case DATUM:
+				datum.toString();
+			default:
+				var opt = optargs == null ? '' : ',{' + [for(o in optargs) '"${o.name}":${o.value}'].join(',') + '}';
+				'[$type,$args$opt]';
+		}
 	}
 }
 
