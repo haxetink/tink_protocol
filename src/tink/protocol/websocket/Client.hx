@@ -48,7 +48,7 @@ class Client implements TinkClient<Message> {
 			function mergeBytes() {
 				if(frames.length == 1) return frames[0].payload;
 				var out = new BytesBuffer();
-				for(frame in frames) out.addBytes(frame.payload, 0, frame.payload.length);
+				for(frame in frames) out.add(frame.payload);
 				return out.getBytes();
 			}
 			
