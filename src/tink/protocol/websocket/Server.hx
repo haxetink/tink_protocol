@@ -6,10 +6,10 @@ import tink.protocol.Client;
 using tink.CoreApi;
 
 class Server {
-	public var connected:Signal<Client<Message>>;
+	public var connected:Signal<Client<Message, Message>>;
 }
 
-class ServerClient implements Client<Message> {
+class ServerClient implements Client<Message, Message> {
 	
 	var duplex:Duplex;
 	

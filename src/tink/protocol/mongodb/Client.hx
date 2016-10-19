@@ -8,9 +8,9 @@ import tink.streams.Stream;
 import tink.protocol.mongodb.Message;
 import tink.protocol.Client as TinkClient;
 
-class Client implements TinkClient<Message> {
+class Client implements TinkClient<Message, Message> {
 	
-	var protocol:TinkClient<Bytes>;
+	var protocol:TinkClient<Bytes, Bytes>;
 	
 	public function new(duplex:Duplex) {
 		this.protocol = new Protocol(duplex);
@@ -25,7 +25,7 @@ class Client implements TinkClient<Message> {
 		return new Sender();
 }
 
-class Protocol implements TinkClient<Bytes> {
+class Protocol implements TinkClient<Bytes, Bytes> {
 	
 	var duplex:Duplex;
 	
