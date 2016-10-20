@@ -4,8 +4,11 @@ import buddy.*;
 import haxe.io.Bytes;
 import tink.io.Source;
 import tink.tcp.Connection;
+import tink.tcp.Server;
 import tink.url.Host;
-import tink.protocol.websocket.Client;
+import tink.streams.Accumulator;
+import tink.protocol.websocket.Requester;
+import tink.protocol.websocket.Responder;
 import tink.protocol.websocket.Frame;
 import tink.protocol.websocket.Parser;
 
@@ -46,25 +49,72 @@ class TestWebSocket extends BuddySuite {
 				});
 			});
 			
-			describe("Client", {
+			describe("Requester", {
 				it("should work with the echo server", function(done) {
 					var host = 'echo.websocket.org';
 					var connection = Connection.establish({host: host, port: 80});
-					var ws = new Client(connection, 'http://$host');
+					var ws = new Requester(connection, 'http://$host');
 					
 					var c = 0;
 					var n = 7;
-					var sender = Client.sender();
-					ws.connect(sender).forEach(function(message) {
-						switch message {
-							case Text(v): v.should.be('payload' + ++c);
+					var sender = new Accumulator();
+					ws.connect(sender).forEach(function(bytes) {
+						switch Frame.toMessage([Frame.fromBytes(bytes)]) {
+							case Some(Text(v)): v.should.be('payload' + ++c);
 							default: fail('Unexpected message');
 						}
 						if(c == n) done();
 						return c < n;
 					});
 					
-					for(i in 0...n) sender.send(Text('payload' + (i + 1)));
+					var key = Bytes.alloc(4);
+					for(i in 0...n) {
+						var frame = Frame.fromMessage(Text('payload' + (i + 1)));
+						frame.maskWith(key);
+						sender.yield(Data(frame.toBytes()));
+					}
+				});
+			});
+			
+			describe("Responder", {
+				it("should work with the Requester", function(done) {
+					Server.bind(18088).handle(function(o) switch o {
+						case Success(server):
+							server.connected.handle(function(connection) {
+								var c = new Responder(connection);
+								var sender = new Accumulator();
+								c.connect(sender).forEach(function(bytes) {
+									// send back an identical but unmasked frame
+									var frame:Frame = bytes;
+									frame.unmask();
+									sender.yield(Data(frame.toBytes()));
+									return true;
+								});
+							});
+						default:
+					});
+					
+					var connection = Connection.establish(18088);
+					var ws = new Requester(connection, 'http://localhost');
+					
+					var c = 0;
+					var n = 7;
+					var sender = new Accumulator();
+					ws.connect(sender).forEach(function(bytes) {
+						switch Frame.toMessage([Frame.fromBytes(bytes)]) {
+							case Some(Text(v)): v.should.be('payload' + ++c);
+							default: fail('Unexpected message');
+						}
+						if(c == n) done();
+						return c < n;
+					});
+					
+					var key = Bytes.alloc(4);
+					for(i in 0...n) {
+						var frame = Frame.fromMessage(Text('payload' + (i + 1)));
+						frame.maskWith(key);
+						sender.yield(Data(frame.toBytes()));
+					}
 				});
 			});
 		});

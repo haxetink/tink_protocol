@@ -7,13 +7,15 @@ using tink.CoreApi;
 
 abstract IncomingHandshakeRequestHeader(IncomingRequestHeader) from IncomingRequestHeader to IncomingRequestHeader {
 	
+	public var key(get, never):String;
+	
 	public function validate() {
 		
 		var errors = [];
 		function ensureHeader(name:String, ?value:String) 
-			return switch this.byName(name) {
+			switch this.byName(name) {
 				case Failure(f): errors.push('Header $name not found');
-				case Success(v) if(value == null || v.toLowerCase() == value): // ok
+				case Success(v) if(value == null || (v:String).toLowerCase() == value): // ok
 				case Success(v): errors.push('Header value for $name is expected to be $value, but got $v');
 			}
 			
@@ -28,6 +30,8 @@ abstract IncomingHandshakeRequestHeader(IncomingRequestHeader) from IncomingRequ
 			else
 				Success(Noise);
 	}
+	
+	inline function get_key() return this.byName('sec-websocket-key').sure();
 	
 	public static inline function parser():StreamParser<IncomingHandshakeRequestHeader>
 		return IncomingRequestHeader.parser();
