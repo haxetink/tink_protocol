@@ -91,30 +91,30 @@ class TestWebSocket extends BuddySuite {
 									return true;
 								});
 							});
-						default:
+							
+							var ws = new Requester(Connection.establish(18088), 'http://localhost');
+
+							var c = 0;
+							var n = 7;
+							var sender = new Accumulator();
+							ws.connect(sender).forEach(function(bytes) {
+								switch Frame.toMessage([Frame.fromBytes(bytes)]) {
+									case Some(Text(v)): v.should.be('payload' + ++c);
+									default: fail('Unexpected message');
+								}
+								if(c == n) done();
+								return c < n;
+							});
+							
+							var key = Bytes.alloc(4);
+							for(i in 0...n) {
+								var frame = Frame.fromMessage(Text('payload' + (i + 1)));
+								frame.maskWith(key);
+								sender.yield(Data(frame.toBytes()));
+							}
+							
+						case Failure(f): fail(f);
 					});
-					
-					var connection = Connection.establish(18088);
-					var ws = new Requester(connection, 'http://localhost');
-					
-					var c = 0;
-					var n = 7;
-					var sender = new Accumulator();
-					ws.connect(sender).forEach(function(bytes) {
-						switch Frame.toMessage([Frame.fromBytes(bytes)]) {
-							case Some(Text(v)): v.should.be('payload' + ++c);
-							default: fail('Unexpected message');
-						}
-						if(c == n) done();
-						return c < n;
-					});
-					
-					var key = Bytes.alloc(4);
-					for(i in 0...n) {
-						var frame = Frame.fromMessage(Text('payload' + (i + 1)));
-						frame.maskWith(key);
-						sender.yield(Data(frame.toBytes()));
-					}
 				});
 			});
 		});
