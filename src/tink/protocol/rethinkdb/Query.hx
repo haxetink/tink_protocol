@@ -9,52 +9,48 @@ using tink.CoreApi;
 
 @:forward
 abstract Query(QueryBase) from QueryBase to QueryBase {
-	
-	public function new(type, ?query, ?token)
-		return new QueryBase(type, query, token == null ? nextToken() : token);
 		
 	@:to
 	public function toBytes():Bytes {
 		var out = new BytesOutput();
 		
-		out.writeInt32(this.token.high);
-		out.writeInt32(this.token.low);
-		
-		var serializedQuery = switch this.type {
-			case START: '[${this.type},${this.query.toString()},{}]';
-			case CONTINUE | STOP | NOREPLY_WAIT | SERVER_INFO: '[${this.type},[],{}]';
+		var serializedQuery, token;
+		switch this {
+			case QStart(query):
+				token = QueryToken.next();
+				serializedQuery = '[$START,${query.toString()},{}]';
+			case QContinue(t):
+				token = t;
+				serializedQuery = '[$CONTINUE,[],{}]';
+			case QStop(t):
+				token = t;
+				serializedQuery = '[$STOP,[],{}]';
+			case QNoreplyWait:
+				token = QueryToken.next();
+				serializedQuery = '[$NOREPLY_WAIT,[],{}]';
+			case QServerInfo:
+				token = QueryToken.next();
+				serializedQuery = '[$SERVER_INFO,[],{}]';
 		}
+		
+		out.writeInt32(token.high);
+		out.writeInt32(token.low);
 		out.writeInt32(serializedQuery.length);
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
 		
-		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
+		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
 	}
-	
-	public static inline function nextToken()
-		return QueryBase.nextToken();
 }
 
-class QueryBase {
-	public var type:QueryType;
-	public var query:Term;
-	public var token:Int64;
-	public var OBSOLETE_noreply:Bool; // TODO: figure out how these work
-	public var accepts_r_json:Bool; // TODO: figure out how these work
-	public var global_optargs:Array<Named<Term>>; // TODO: figure out how these work
-	
+@:forward
+abstract QueryToken(Int64) from Int64 to Int64 {
 	static var counterHigh = 0;
 	static var counterLow = 0;
 	
-	public function new(type, query, token) {
-		this.type = type;
-		this.query = query;
-		this.token = token;
-	}
-	
-	public static function nextToken() {
+	public static function next():QueryToken {
 		if(counterLow == 0xffffffff) {
 			counterLow = 0;
 			counterHigh++; // will it ever exceed the limit?!
@@ -63,6 +59,14 @@ class QueryBase {
 			
 		return Int64.make(counterHigh, counterLow);
 	}
+}
+
+enum QueryBase {
+	QStart(query:Term);
+	QContinue(token:Int64);
+	QStop(token:Int64);
+	QNoreplyWait;
+	QServerInfo;
 }
 
 @:enum

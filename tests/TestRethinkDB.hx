@@ -37,10 +37,12 @@ class TestRethinkDB extends BuddySuite {
 					// run the command: r.db('rethinkdb').table('users')
 					var db = TDb([TDatum('rethinkdb')]);
 					var table = TTable([db, TDatum('users')]);
-					for(i in 0...n) sender.yield(Data(new Query(START, table).toBytes()));
+					var query:Query = QStart(table);
+					for(i in 0...n) sender.yield(Data(query.toBytes())); // run a few times....
 					
 					// query server info
-					sender.yield(Data(new Query(SERVER_INFO).toBytes()));
+					var query:Query = QServerInfo;
+					sender.yield(Data(query.toBytes()));
 					
 					// insert a doc
 					var db = TDb([TDatum('test')]);
@@ -58,7 +60,8 @@ class TestRethinkDB extends BuddySuite {
 						new NamedWith('date', DDate(Date.now())),
 						new NamedWith('binary', DBinary(Bytes.alloc(10))),
 					])]);
-					sender.yield(Data(new Query(START, insert).toBytes()));
+					var query:Query = QStart(insert);
+					sender.yield(Data(query.toBytes()));
 				});
 				
 			});
