@@ -10,6 +10,7 @@ import tink.protocol.rethinkdb.Client;
 import tink.protocol.rethinkdb.Parser;
 import tink.protocol.rethinkdb.Query;
 import tink.protocol.rethinkdb.Term;
+import tink.protocol.rethinkdb.Datum;
 import tink.protocol.rethinkdb.RawResponse;
 
 using tink.CoreApi;
@@ -29,14 +30,35 @@ class TestRethinkDB extends BuddySuite {
 					client.connect(sender).forEach(function(bytes) {
 						var res:RawResponse = bytes;
 						trace(res.json);
-						if(++c >= n) done();
+						if(++c >= n+2) done();
 						return true;
 					});
 					
 					// run the command: r.db('rethinkdb').table('users')
-					var db = Db([Datum('rethinkdb')]);
-					var table = Table([db, Datum('users')]);
+					var db = TDb([TDatum('rethinkdb')]);
+					var table = TTable([db, TDatum('users')]);
 					for(i in 0...n) sender.yield(Data(new Query(START, table).toBytes()));
+					
+					// query server info
+					sender.yield(Data(new Query(SERVER_INFO).toBytes()));
+					
+					// insert a doc
+					var db = TDb([TDatum('test')]);
+					var table = TTable([db, TDatum('tink_protocol')]);
+					var insert = TInsert([table, TDatum([
+						new NamedWith('null', DNull),
+						new NamedWith('bool', DBool(true)),
+						new NamedWith('number', DNumber(18)),
+						new NamedWith('string', DString('mystring')),
+						new NamedWith('array', DArray([1,2,3,4])),
+						new NamedWith('object', DObject([
+							new NamedWith('bool', DBool(true)),
+							new NamedWith('number', DNumber(18)),
+						])),
+						new NamedWith('date', DDate(Date.now())),
+						new NamedWith('binary', DBinary(Bytes.alloc(10))),
+					])]);
+					sender.yield(Data(new Query(START, insert).toBytes()));
 				});
 				
 			});

@@ -2,6 +2,7 @@ package tink.protocol.rethinkdb;
 
 import haxe.Int64;
 import haxe.io.Bytes;
+import tink.protocol.rethinkdb.Datum;
 
 @:forward
 abstract Response(ResponseBase) from ResponseBase to ResponseBase {
@@ -15,7 +16,7 @@ abstract Response(ResponseBase) from ResponseBase to ResponseBase {
 		
 		var response = switch type {
 			case SUCCESS_ATOM | SERVER_INFO | CLIENT_ERROR | COMPILE_ERROR | RUNTIME_ERROR: Datum.fromDynamic(res.r[0]);
-			case SUCCESS_SEQUENCE | SUCCESS_PARTIAL: Datum.DatumBase.Arr([for(i in (res.r:Array<Dynamic>)) Datum.fromDynamic(i)]);
+			case SUCCESS_SEQUENCE | SUCCESS_PARTIAL: DArray([for(i in (res.r:Array<Dynamic>)) Datum.fromDynamic(i)]);
 			case WAIT_COMPLETE: null;
 		}
 		

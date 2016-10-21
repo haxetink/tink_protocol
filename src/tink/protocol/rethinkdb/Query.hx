@@ -10,7 +10,7 @@ using tink.CoreApi;
 @:forward
 abstract Query(QueryBase) from QueryBase to QueryBase {
 	
-	public function new(type, query, ?token)
+	public function new(type, ?query, ?token)
 		return new QueryBase(type, query, token == null ? nextToken() : token);
 		
 	@:to
@@ -20,12 +20,15 @@ abstract Query(QueryBase) from QueryBase to QueryBase {
 		out.writeInt32(this.token.high);
 		out.writeInt32(this.token.low);
 		
-		var serializedQuery = '[${this.type},${this.query.toString()},{}]';
+		var serializedQuery = switch this.type {
+			case START: '[${this.type},${this.query.toString()},{}]';
+			case CONTINUE | STOP | NOREPLY_WAIT | SERVER_INFO: '[${this.type},[],{}]';
+		}
 		out.writeInt32(serializedQuery.length);
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
 		
-		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
+		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
 	}
