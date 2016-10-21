@@ -7,29 +7,20 @@ import haxe.io.BytesOutput;
 using StringTools;
 using tink.CoreApi;
 
-class Query {
-	public var type:QueryType;
-	public var query:Term;
-	public var token:Int64;
-	public var OBSOLETE_noreply:Bool;
-	public var accepts_r_json:Bool;
-	public var global_optargs:Array<Named<Term>>;
+@:forward
+abstract Query(QueryBase) from QueryBase to QueryBase {
 	
-	static var counter = 0;
-	
-	public function new(type, query, token) {
-		this.type = type;
-		this.query = query;
-		this.token = token;
-	}
-	
+	public function new(type, query, ?token:Int64)
+		return new QueryBase(type, query, token == null ? nextToken() : token);
+		
+	@:to
 	public function toBytes():Bytes {
 		var out = new BytesOutput();
 		
-		out.writeInt32(token.high);
-		out.writeInt32(token.low);
+		out.writeInt32(this.token.high);
+		out.writeInt32(this.token.low);
 		
-		var serializedQuery = '[$type,${query.toString()},{}]';
+		var serializedQuery = '[${this.type},${this.query.toString()},{}]';
 		out.writeInt32(serializedQuery.length);
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
@@ -37,6 +28,27 @@ class Query {
 		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
+	}
+	
+	public static function nextToken() {
+		return Int64.make(0, @:privateAccess QueryBase.counter++ % (1 << 32));
+	}
+}
+
+class QueryBase {
+	public var type:QueryType;
+	public var query:Term;
+	public var token:Int64;
+	public var OBSOLETE_noreply:Bool; // TODO: figure out how these work
+	public var accepts_r_json:Bool; // TODO: figure out how these work
+	public var global_optargs:Array<Named<Term>>; // TODO: figure out how these work
+	
+	static var counter = 0;
+	
+	public function new(type, query, token) {
+		this.type = type;
+		this.query = query;
+		this.token = token;
 	}
 }
 

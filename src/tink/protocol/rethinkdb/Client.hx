@@ -30,8 +30,8 @@ class Client implements Protocol {
 		
 		// write the magic number
 		var out = new BytesOutput();
-		out.writeInt32(0x34c2bdc3);
-		(out.getBytes():Source).pipeTo(duplex.sink).handle(function(){});
+		out.writeInt32(0x34c2bdc3); // V1_0
+		(out.getBytes():Source).pipeTo(duplex.sink).handle(function() {});
 		
 		function sendJson(obj:{}) {
 			var out = new BytesOutput();
@@ -44,7 +44,7 @@ class Client implements Protocol {
 		var source = duplex.source;
 		var parser = new HandshakeParser();
 		return source.parse(parser) >>
-			function(o:{data:Bytes, rest:Source}) {
+			function(o:{data:Bytes, rest:Source}) { // receive result for the magic number
 				source = o.rest;
 				var str = o.data.toString();
 				return try {
@@ -55,13 +55,13 @@ class Client implements Protocol {
 					Failure(new Error('Server handshake error: $str'));
 				}
 			} >>
-			function(_) return sendJson({
+			function(_) return sendJson({ // send client-first-message
 				protocol_version: 0,
 				authentication_method: 'SCRAM-SHA-256',
 				authentication: scram.clientFirstMessage,
 			}) >>
 			function(_) return source.parse(parser) >>
-			function(o:{data:Bytes, rest:Source}) {
+			function(o:{data:Bytes, rest:Source}) { // receive server-first-message
 				source = o.rest;
 				var str = o.data.toString();
 				var result = Json.parse(str);
@@ -71,18 +71,22 @@ class Client implements Protocol {
 				}
 				else Failure(new Error('Unsuccessful operation: $str'));
 			} >>
-			function(_) return sendJson({
+			function(_) return sendJson({ // send client-final-message
 				authentication: scram.clientFinalMessage,
 			}) >>
 			function(_) return source.parse(parser) >>
-			function(o:{data:Bytes, rest:Source}) {
+			function(o:{data:Bytes, rest:Source}) { // receive server-final-message
 				source = o.rest;
 				var str = o.data.toString();
 				var result = Json.parse(str);
 				return if(result.success) {
 					try {
 						scram.serverFinalMessage = result.authentication;
+						
+						// outgoing
 						send.forEachAsync(function(bytes) return (bytes:Source).pipeTo(duplex.sink).map(function(_) return true));
+						
+						// incoming
 						Success(source.parseStream(new Parser()));
 					} catch(e:Dynamic) Failure(new Error(Std.string(e)));
 				}

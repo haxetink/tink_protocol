@@ -31,9 +31,9 @@ class TestRethinkDB extends BuddySuite {
 						return false;
 					});
 					
-					var db = new Term(DB, [new Term(DATUM, 'rethinkdb')]);
-					var table = new Term(TABLE, [db, new Term(DATUM, 'users')]);
-					sender.yield(Data(new Query(START, table, haxe.Int64.make(0, 1)).toBytes()));
+					var db = Db([Datum('rethinkdb')]);
+					var table = Table([db, Datum('users')]);
+					sender.yield(Data(new Query(START, table).toBytes()));
 				});
 				
 			});
