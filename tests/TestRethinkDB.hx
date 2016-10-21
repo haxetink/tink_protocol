@@ -33,6 +33,7 @@ class TestRethinkDB extends BuddySuite {
 						return true;
 					});
 					
+					// run the command: r.db('rethinkdb').table('users')
 					var db = Db([Datum('rethinkdb')]);
 					var table = Table([db, Datum('users')]);
 					for(i in 0...n) sender.yield(Data(new Query(START, table).toBytes()));
