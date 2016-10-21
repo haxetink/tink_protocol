@@ -15,9 +15,10 @@ Basically you construct the query as follow:
 // construct the ReQL: `r.db('rethinkdb').table('users')`
 var db = TDb([TDatum('rethinkdb')]);
 var table = TTable([db, TDatum('users')]);
+var query:Query = QStart(table);
 
 // convert to bytes which can then be sent through the wire
-var bytes = new Query(START, table).toBytes();
+var bytes = query.toBytes();
 ```
 
 Check out the test folder for some more query examples.
