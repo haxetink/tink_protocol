@@ -10,7 +10,7 @@ using tink.CoreApi;
 @:forward
 abstract Query(QueryBase) from QueryBase to QueryBase {
 	
-	public function new(type, query, ?token:Int64)
+	public function new(type, query, ?token)
 		return new QueryBase(type, query, token == null ? nextToken() : token);
 		
 	@:to
@@ -25,14 +25,13 @@ abstract Query(QueryBase) from QueryBase to QueryBase {
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
 		
-		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
+		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
 	}
 	
-	public static function nextToken() {
-		return Int64.make(0, @:privateAccess QueryBase.counter++ % (1 << 32));
-	}
+	public static inline function nextToken()
+		return QueryBase.nextToken();
 }
 
 class QueryBase {
@@ -43,12 +42,23 @@ class QueryBase {
 	public var accepts_r_json:Bool; // TODO: figure out how these work
 	public var global_optargs:Array<Named<Term>>; // TODO: figure out how these work
 	
-	static var counter = 0;
+	static var counterHigh = 0;
+	static var counterLow = 0;
 	
 	public function new(type, query, token) {
 		this.type = type;
 		this.query = query;
 		this.token = token;
+	}
+	
+	public static function nextToken() {
+		if(counterLow == 0xffffffff) {
+			counterLow = 0;
+			counterHigh++; // will it ever exceed the limit?!
+		} else
+			counterLow++;
+			
+		return Int64.make(counterHigh, counterLow);
 	}
 }
 

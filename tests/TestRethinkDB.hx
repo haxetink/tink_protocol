@@ -24,16 +24,18 @@ class TestRethinkDB extends BuddySuite {
 				it("should list users in database", function(done) {
 					var client = new Client(Connection.establish(28015));
 					var sender = new Accumulator();
+					var c = 0;
+					var n = 4;
 					client.connect(sender).forEach(function(bytes) {
 						var res:RawResponse = bytes;
 						trace(res.json);
-						done();
-						return false;
+						if(++c >= n) done();
+						return true;
 					});
 					
 					var db = Db([Datum('rethinkdb')]);
 					var table = Table([db, Datum('users')]);
-					sender.yield(Data(new Query(START, table).toBytes()));
+					for(i in 0...n) sender.yield(Data(new Query(START, table).toBytes()));
 				});
 				
 			});
