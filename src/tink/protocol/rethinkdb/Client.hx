@@ -8,29 +8,12 @@ import tink.io.Duplex;
 import tink.io.Source;
 import tink.streams.Stream;
 import tink.streams.Accumulator;
-import tink.protocol.Client as TinkClient;
+import tink.protocol.Protocol;
 
 using tink.CoreApi;
 using StringTools;
 
-class Client implements TinkClient<RawResponse, Query> {
-	
-	var protocol:Protocol;
-	
-	public function new(duplex:Duplex) {
-		this.protocol = new Protocol(duplex);
-	}
-	
-	public function connect(send:Stream<Query>):Stream<RawResponse> {
-		var out = send.map(function(query) return query.toBytes());
-		return protocol.connect(out).map(function(bytes):RawResponse return bytes);
-	}
-	
-	public static function sender()
-		return new Sender();
-}
-
-class Protocol implements TinkClient<Bytes, Bytes> {
+class Client implements Protocol {
 	
 	var duplex:Duplex;
 	var options:Options;

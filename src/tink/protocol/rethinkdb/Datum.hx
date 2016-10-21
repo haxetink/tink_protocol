@@ -21,6 +21,26 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 		}
 	}
 	
+	@:from
+	public static inline function ofString(v:String):Datum
+		return Str(v);
+		
+	@:from
+	public static inline function ofFloat(v:Float):Datum
+		return Num(v);
+	
+	@:from
+	public static inline function ofBool(v:Bool):Datum
+		return Bool(v);
+		
+	@:from
+	public static inline function ofArray(v:Array<Datum>):Datum
+		return Arr(v);
+		
+	@:from
+	public static inline function ofObject(v:Array<Named<Datum>>):Datum
+		return Object(v);
+	
 	@:to
 	public function toString():String {
 		return switch this {
