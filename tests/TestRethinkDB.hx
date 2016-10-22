@@ -62,6 +62,11 @@ class TestRethinkDB extends BuddySuite {
 					])]);
 					var query:Query = QStart(insert);
 					sender.yield(Data(query.toBytes()));
+					
+					// insert a doc using json string
+					var insert = TInsert([table, TDatum(DJson('{"json":123}'))]);
+					var query:Query = QStart(insert);
+					sender.yield(Data(query.toBytes()));
 				});
 				
 			});
