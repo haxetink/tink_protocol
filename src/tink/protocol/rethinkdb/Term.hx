@@ -8,6 +8,10 @@ using tink.CoreApi;
 
 @:forward
 abstract Term(TermBase) from TermBase to TermBase {
+	
+	public inline function concat(v:TermArgs):TermArgs
+		return [this].concat(v);
+		
 	@:to
 	public function toString():String {
 		return switch this {
@@ -195,7 +199,36 @@ abstract Term(TermBase) from TermBase to TermBase {
 	}
 }
 
-abstract TermArgs(Array<Term>) from Array<Term> {
+@:forward
+abstract TermArgs(Array<Term>) from Array<Term> to Array<Term> {
+	
+	@:from
+	public static inline function ofSingle(v:Term):TermArgs
+		return [v];
+	@:from
+	public static inline function ofInt(v:Int):TermArgs
+		return ofSingle(TDatum(v));
+	@:from
+	public static inline function ofFloat(v:Float):TermArgs
+		return ofSingle(TDatum(v));
+	@:from
+	public static inline function ofString(v:String):TermArgs
+		return ofSingle(TDatum(v));
+	@:from
+	public static inline function ofBool(v:Bool):TermArgs
+		return ofSingle(TDatum(v));
+	@:from
+	public static function ofInts(v:Array<Int>):TermArgs
+		return [for(i in v) TDatum(i)];
+	@:from
+	public static function ofFloats(v:Array<Float>):TermArgs
+		return [for(i in v) TDatum(i)];
+	@:from
+	public static function ofStrings(v:Array<String>):TermArgs
+		return [for(i in v) TDatum(i)];
+	@:from
+	public static function ofBools(v:Array<Bool>):TermArgs
+		return [for(i in v) TDatum(i)];
 	@:to
 	public function toString():String
 		return '[' + [for(i in this) i.toString()].join(',') + ']';

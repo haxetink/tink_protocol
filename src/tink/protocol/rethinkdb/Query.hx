@@ -9,32 +9,34 @@ using tink.CoreApi;
 
 @:forward
 abstract Query(QueryBase) from QueryBase to QueryBase {
-		
+	
+	@:from
+	public static function ofEnum(e:QueryEnum):Query {
+		var token = switch e {
+			case QStart(query): QueryToken.next();
+			case QContinue(t): t;
+			case QStop(t): t;
+			case QNoreplyWait: QueryToken.next();
+			case QServerInfo: QueryToken.next();
+		}
+		return new QueryBase(token, e);
+	}
+	
 	@:to
 	public function toBytes():Bytes {
 		var out = new BytesOutput();
 		
-		var serializedQuery, token;
-		switch this {
-			case QStart(query):
-				token = QueryToken.next();
-				serializedQuery = '[$START,${query.toString()},{}]';
-			case QContinue(t):
-				token = t;
-				serializedQuery = '[$CONTINUE,[],{}]';
-			case QStop(t):
-				token = t;
-				serializedQuery = '[$STOP,[],{}]';
-			case QNoreplyWait:
-				token = QueryToken.next();
-				serializedQuery = '[$NOREPLY_WAIT,[],{}]';
-			case QServerInfo:
-				token = QueryToken.next();
-				serializedQuery = '[$SERVER_INFO,[],{}]';
+		var serializedQuery;
+		serializedQuery = switch this.type {
+			case QStart(query): '[$START,${query.toString()},{}]';
+			case QContinue(t): '[$CONTINUE,[],{}]';
+			case QStop(t): '[$STOP,[],{}]';
+			case QNoreplyWait: '[$NOREPLY_WAIT,[],{}]';
+			case QServerInfo: '[$SERVER_INFO,[],{}]';
 		}
 		
-		out.writeInt32(token.high);
-		out.writeInt32(token.low);
+		out.writeInt32(this.token.high);
+		out.writeInt32(this.token.low);
 		out.writeInt32(serializedQuery.length);
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
@@ -61,7 +63,17 @@ abstract QueryToken(Int64) from Int64 to Int64 {
 	}
 }
 
-enum QueryBase {
+class QueryBase {
+	public var token:Int64;
+	public var type:QueryEnum;
+	
+	public function new(token, type) {
+		this.token = token;
+		this.type = type;
+	}
+}
+
+enum QueryEnum {
 	QStart(query:Term);
 	QContinue(token:Int64);
 	QStop(token:Int64);

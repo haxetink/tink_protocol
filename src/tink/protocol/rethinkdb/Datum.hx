@@ -34,6 +34,26 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 	@:from
 	public static inline function ofBool(v:Bool):Datum
 		return DBool(v);
+	
+	@:from
+	public static inline function ofStrings(v:Array<String>):Datum
+		return DArray([for(i in v) i]);
+		
+	@:from
+	public static inline function ofInts(v:Array<Int>):Datum
+		return DArray([for(i in v) i]);
+		
+	@:from
+	public static inline function ofFloats(v:Array<Float>):Datum
+		return DArray([for(i in v) i]);
+	
+	@:from
+	public static inline function ofBools(v:Array<Bool>):Datum
+		return DArray([for(i in v) i]);
+	
+	@:from
+	public static inline function ofBytes(v:Bytes):Datum
+		return DBinary(v);
 		
 	@:from
 	public static inline function ofArray(v:Array<Datum>):Datum
