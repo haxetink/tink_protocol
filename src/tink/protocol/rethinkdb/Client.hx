@@ -84,7 +84,10 @@ class Client implements Protocol {
 						scram.serverFinalMessage = result.authentication;
 						
 						// outgoing
-						send.forEachAsync(function(bytes) return (bytes:Source).pipeTo(duplex.sink).map(function(_) return true));
+						send.forEachAsync(function(bytes) return (bytes:Source).pipeTo(duplex.sink).map(function(result) switch result {
+							case AllWritten: return true;
+							case _: trace(result); return false;
+						}));
 						
 						// incoming
 						Success(source.parseStream(new Parser()));
