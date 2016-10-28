@@ -28,6 +28,10 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 		return DString(v);
 		
 	@:from
+	public static inline function ofInt(v:Int):Datum
+		return DNumber(v);
+	
+	@:from
 	public static inline function ofFloat(v:Float):Datum
 		return DNumber(v);
 	
@@ -65,7 +69,7 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 	
 	@:to
 	public function toString():String {
-		return switch this {
+		return this == null ? 'null' : switch this {
 			case DNull: 'null';
 			case DBool(v): v ? 'true' : 'false';
 			case DNumber(v): '$v';
