@@ -8,32 +8,6 @@ using tink.protocol.rethinkdb.Term;
 using StringTools;
 using tink.CoreApi;
 
-class QueryTools {
-	
-	public static function toBytes(q:Query):Bytes {
-		var out = new BytesOutput();
-		
-		var serializedQuery;
-		serializedQuery = switch q.type {
-			case QStart(query): '[$START,${query.asString()},{}]';
-			case QContinue(t): '[$CONTINUE,[],{}]';
-			case QStop(t): '[$STOP,[],{}]';
-			case QNoreplyWait: '[$NOREPLY_WAIT,[],{}]';
-			case QServerInfo: '[$SERVER_INFO,[],{}]';
-		}
-		
-		out.writeInt32(q.token.high);
-		out.writeInt32(q.token.low);
-		out.writeInt32(serializedQuery.length);
-		out.writeString(serializedQuery);
-		var bytes = out.getBytes();
-		
-		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
-		
-		return bytes;
-	}
-}
-
 @:forward
 abstract QueryToken(Int64) from Int64 to Int64 {
 	static var counterHigh = 0;
@@ -54,16 +28,46 @@ abstract QueryToken(Int64) from Int64 to Int64 {
 class Query {
 	public var token:Int64;
 	public var type:QueryKind;
-	public var term:Term;
+	public var term(get, never):Term;
 	
 	public function new(type) {
 		this.type = type;
 		this.token = switch type {
-			case QStart(query): term = query; new QueryToken();
+			case QStart(query): new QueryToken();
 			case QContinue(t): t;
 			case QStop(t): t;
 			case QNoreplyWait: new QueryToken();
 			case QServerInfo: new QueryToken();
+		}
+	}
+	
+	public function toBytes():Bytes {
+		var out = new BytesOutput();
+		
+		var serializedQuery;
+		serializedQuery = switch type {
+			case QStart(query): '[$START,${query.asString()},{}]';
+			case QContinue(t): '[$CONTINUE,[],{}]';
+			case QStop(t): '[$STOP,[],{}]';
+			case QNoreplyWait: '[$NOREPLY_WAIT,[],{}]';
+			case QServerInfo: '[$SERVER_INFO,[],{}]';
+		}
+		
+		out.writeInt32(token.high);
+		out.writeInt32(token.low);
+		out.writeInt32(serializedQuery.length);
+		out.writeString(serializedQuery);
+		var bytes = out.getBytes();
+		
+		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
+		
+		return bytes;
+	}
+	
+	function get_term() {
+		return switch type {
+			case QStart(t): t;
+			default: null;
 		}
 	}
 }

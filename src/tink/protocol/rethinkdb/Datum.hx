@@ -4,7 +4,6 @@ import haxe.crypto.Base64;
 import haxe.io.Bytes;
 import tink.protocol.rethinkdb.Term;
 
-using tink.protocol.rethinkdb.Datum;
 using tink.CoreApi;
 
 class DatumTools {
@@ -34,8 +33,8 @@ class DatumTools {
 			case DBool(v): v ? 'true' : 'false';
 			case DNumber(v): '$v';
 			case DString(v): '"$v"';
-			case DArray(v): '[$MAKE_ARRAY,[' + [for(i in v) i.asString()].join(',') + ']]';
-			case DObject(v): '{' + [for(i in v) '"${i.name}":${i.value.asString()}'].join(',') + '}';
+			case DArray(v): '[$MAKE_ARRAY,[' + [for(i in v) asString(i)].join(',') + ']]';
+			case DObject(v): '{' + [for(i in v) '"${i.name}":${asString(i.value)}'].join(',') + '}';
 			case DDate(v): '{"$$reql_type$$":"TIME","epoch_time":${v.getTime()/1000},"timezone":"+00:00"}';
 			case DBinary(v): '{"$$reql_type$$":"BINARY","data":"${Base64.encode(v)}"}';
 			case DJson(v): v;
