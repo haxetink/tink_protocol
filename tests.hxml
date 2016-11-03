@@ -1,6 +1,7 @@
 -cp tests
 -main RunTests
+-dce full
 
 -lib buddy
 -lib tink_tcp
--lib bson
+-lib scram
