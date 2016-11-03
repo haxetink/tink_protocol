@@ -41,19 +41,19 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 	
 	@:from
 	public static inline function ofStrings(v:Array<String>):Datum
-		return DArray([for(i in v) i]);
+		return DArray([for(i in v) ofString(i)]);
 		
 	@:from
 	public static inline function ofInts(v:Array<Int>):Datum
-		return DArray([for(i in v) i]);
+		return DArray([for(i in v) ofInt(i)]);
 		
 	@:from
 	public static inline function ofFloats(v:Array<Float>):Datum
-		return DArray([for(i in v) i]);
+		return DArray([for(i in v) ofFloat(i)]);
 	
 	@:from
 	public static inline function ofBools(v:Array<Bool>):Datum
-		return DArray([for(i in v) i]);
+		return DArray([for(i in v) ofBool(i)]);
 	
 	@:from
 	public static inline function ofBytes(v:Bytes):Datum
@@ -66,6 +66,10 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 	@:from
 	public static inline function ofObject(v:Array<Named<Datum>>):Datum
 		return DObject(v);
+		
+	@:from
+	public static inline function ofPlainObject(v:{}):Datum
+		return DObject([for(field in Reflect.fields(v)) new NamedWith(field, fromDynamic(Reflect.field(v, field)))]);
 	
 	@:to
 	public function toString():String {

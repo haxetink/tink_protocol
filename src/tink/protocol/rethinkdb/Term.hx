@@ -3,6 +3,7 @@ package tink.protocol.rethinkdb;
 import haxe.Json;
 import haxe.io.Bytes;
 import haxe.io.BytesOutput;
+import tink.protocol.rethinkdb.Datum;
 
 using tink.CoreApi;
 
@@ -15,6 +16,7 @@ abstract Term(TermBase) from TermBase to TermBase {
 	@:to
 	public function toString():String {
 		return switch this {
+			case null: (DNull:Datum).toString();
 			case TDatum(datum): datum.toString();
 			case TMakeArray(args, opt): '[$MAKE_ARRAY,${args.toString()}${opt.toString()}]';
 			case TMakeObj(args, opt): '[$MAKE_OBJ,${args.toString()}${opt.toString()}]';

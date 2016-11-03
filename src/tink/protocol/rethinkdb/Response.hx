@@ -28,7 +28,8 @@ abstract Response(ResponseBase) from ResponseBase to ResponseBase {
 		var backtrace = res.b; // TODO: parse it
 		var profile = Datum.fromDynamic(res.p); // TODO: parse it
 		var notes = res.n == null ? [] : res.n;
-		return new ResponseBase(res.t, token, response, backtrace, profile, notes);
+		var errorType = res.e == null ? 0 : res.e;
+		return new ResponseBase(res.t, token, response, backtrace, profile, notes, errorType);
 	}
 	
 	public inline function convert(format:{rawTime:Bool, rawGroups:Bool, rawBinary:Bool}, level = 100) {
@@ -71,15 +72,16 @@ class ResponseBase {
 	public var backtrace:Backtrace;
 	public var profile:Datum;
 	public var notes:Array<ResponseNote>;
-	public var error_type:ErrorType;
+	public var errorType:ErrorType;
 	
-	public function new(type, token, response, backtrace, profile, notes) {
+	public function new(type, token, response, backtrace, profile, notes, errorType) {
 		this.type = type;
 		this.token = token;
 		this.response = response;
 		this.backtrace = backtrace;
 		this.profile = profile;
 		this.notes = notes;
+		this.errorType = errorType;
 	}
 	
 	public function isWaitComplete() {
