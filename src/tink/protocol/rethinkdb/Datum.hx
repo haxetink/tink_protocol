@@ -9,9 +9,8 @@ using tink.CoreApi;
 
 class DatumTools {
 	
-	@:from
 	public static inline function ofAny(v:Dynamic):Datum {
-		// this is the lazy way
+		// this is the lazy way, we can probably use tink_typecrawler to convert at compile time
 		function handle(i:Dynamic) {
 			return if(i == null) DNull;
 			else if(Std.is(i, String)) DString(i);

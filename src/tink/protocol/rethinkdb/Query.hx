@@ -28,7 +28,7 @@ class QueryTools {
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
 		
-		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
+		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
 	}
