@@ -62,8 +62,7 @@ class TestRethinkDB extends BuddySuite {
 						])),
 						new NamedWith('date', DDate(Date.now())),
 						new NamedWith('binary', DBinary(Bytes.alloc(10))),
-					]))],
-					[new NamedWith('nothing', TDatum(null))]);
+					]))]);
 					var query = new Query(QStart(insert));
 					sender.yield(Data(query.toBytes()));
 					
