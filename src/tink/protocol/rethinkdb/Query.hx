@@ -4,44 +4,31 @@ import haxe.Int64;
 import haxe.io.Bytes;
 import haxe.io.BytesOutput;
 
+using tink.protocol.rethinkdb.Term;
 using StringTools;
 using tink.CoreApi;
 
-@:forward
-abstract Query(QueryBase) from QueryBase to QueryBase {
+class QueryTools {
 	
-	@:from
-	public static function ofEnum(e:QueryEnum):Query {
-		var token = switch e {
-			case QStart(query): QueryToken.next();
-			case QContinue(t): t;
-			case QStop(t): t;
-			case QNoreplyWait: QueryToken.next();
-			case QServerInfo: QueryToken.next();
-		}
-		return new QueryBase(token, e);
-	}
-	
-	@:to
-	public function toBytes():Bytes {
+	public static function toBytes(q:Query):Bytes {
 		var out = new BytesOutput();
 		
 		var serializedQuery;
-		serializedQuery = switch this.type {
-			case QStart(query): '[$START,${query.toString()},{}]';
+		serializedQuery = switch q.type {
+			case QStart(query): '[$START,${query.asString()},{}]';
 			case QContinue(t): '[$CONTINUE,[],{}]';
 			case QStop(t): '[$STOP,[],{}]';
 			case QNoreplyWait: '[$NOREPLY_WAIT,[],{}]';
 			case QServerInfo: '[$SERVER_INFO,[],{}]';
 		}
 		
-		out.writeInt32(this.token.high);
-		out.writeInt32(this.token.low);
+		out.writeInt32(q.token.high);
+		out.writeInt32(q.token.low);
 		out.writeInt32(serializedQuery.length);
 		out.writeString(serializedQuery);
 		var bytes = out.getBytes();
 		
-		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
+		trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
 	}
@@ -52,28 +39,36 @@ abstract QueryToken(Int64) from Int64 to Int64 {
 	static var counterHigh = 0;
 	static var counterLow = 0;
 	
-	public static function next():QueryToken {
-		if(counterLow == 0xffffffff) {
-			counterLow = 0;
-			counterHigh++; // will it ever exceed the limit?!
-		} else
-			counterLow++;
-			
-		return Int64.make(counterHigh, counterLow);
+	public function new() {
+		this = 
+			if(counterLow == 0xffffffff) {
+				counterLow = 0;
+				counterHigh++; // will it ever exceed the limit?!
+			} else
+				counterLow++;
+				
+			Int64.make(counterHigh, counterLow);
 	}
 }
 
-class QueryBase {
+class Query {
 	public var token:Int64;
-	public var type:QueryEnum;
+	public var type:QueryKind;
+	public var term:Term;
 	
-	public function new(token, type) {
-		this.token = token;
+	public function new(type) {
 		this.type = type;
+		this.token = switch type {
+			case QStart(query): term = query; new QueryToken();
+			case QContinue(t): t;
+			case QStop(t): t;
+			case QNoreplyWait: new QueryToken();
+			case QServerInfo: new QueryToken();
+		}
 	}
 }
 
-enum QueryEnum {
+enum QueryKind {
 	QStart(query:Term);
 	QContinue(token:Int64);
 	QStop(token:Int64);

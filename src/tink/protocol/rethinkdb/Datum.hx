@@ -4,96 +4,13 @@ import haxe.crypto.Base64;
 import haxe.io.Bytes;
 import tink.protocol.rethinkdb.Term;
 
+using tink.protocol.rethinkdb.Datum;
 using tink.CoreApi;
 
-@:forward
-abstract Datum(DatumBase) from DatumBase to DatumBase {
-	
-	public var type(get, never):DatumType;
-	
-	function get_type() {
-		return switch this {
-			case DNull: R_NULL;
-			case DBool(_): R_BOOL;
-			case DNumber(_): R_NUM;
-			case DString(_): R_STR;
-			case DArray(_): R_ARRAY;
-			case DObject(_) | DDate(_) | DBinary(_): R_OBJECT;
-			case DJson(_): R_JSON;
-		}
-	}
+class DatumTools {
 	
 	@:from
-	public static inline function ofString(v:String):Datum
-		return DString(v);
-		
-	@:from
-	public static inline function ofInt(v:Int):Datum
-		return DNumber(v);
-	
-	@:from
-	public static inline function ofFloat(v:Float):Datum
-		return DNumber(v);
-	
-	@:from
-	public static inline function ofBool(v:Bool):Datum
-		return DBool(v);
-	
-	@:from
-	public static inline function ofStrings(v:Array<String>):Datum
-		return DArray([for(i in v) ofString(i)]);
-		
-	@:from
-	public static inline function ofInts(v:Array<Int>):Datum
-		return DArray([for(i in v) ofInt(i)]);
-		
-	@:from
-	public static inline function ofFloats(v:Array<Float>):Datum
-		return DArray([for(i in v) ofFloat(i)]);
-	
-	@:from
-	public static inline function ofBools(v:Array<Bool>):Datum
-		return DArray([for(i in v) ofBool(i)]);
-	
-	@:from
-	public static inline function ofBytes(v:Bytes):Datum
-		return DBinary(v);
-		
-	@:from
-	public static inline function ofArray(v:Array<Datum>):Datum
-		return DArray(v);
-		
-	@:from
-	public static inline function ofObject(v:Array<Named<Datum>>):Datum
-		return DObject(v);
-		
-	@:from
-	public static inline function ofPlainObject(v:{}):Datum
-		return DObject([for(field in Reflect.fields(v)) new NamedWith(field, fromDynamic(Reflect.field(v, field)))]);
-	
-	@:to
-	public function toString():String {
-		return this == null ? 'null' : switch this {
-			case DNull: 'null';
-			case DBool(v): v ? 'true' : 'false';
-			case DNumber(v): '$v';
-			case DString(v): '"$v"';
-			case DArray(v): '[$MAKE_ARRAY,[' + [for(i in v) i.toString()].join(',') + ']]';
-			case DObject(v): '{' + [for(i in v) '"${i.name}":${i.value.toString()}'].join(',') + '}';
-			case DDate(v): '{"$$reql_type$$":"TIME","epoch_time":${v.getTime()/1000},"timezone":"+00:00"}';
-			case DBinary(v): '{"$$reql_type$$":"BINARY","data":"${Base64.encode(v)}"}';
-			case DJson(v): v;
-		}
-	}
-	
-	@:from
-	public static function fromString(v:String):Datum {
-		// TODO: should parse directly into the enums, instead of using reflection to check type
-		return fromDynamic(haxe.Json.parse(v));
-	}
-	
-	public static function fromDynamic(v:Dynamic):Datum {
-		
+	public static inline function ofAny(v:Dynamic):Datum {
 		// this is the lazy way
 		function handle(i:Dynamic) {
 			return if(i == null) DNull;
@@ -111,9 +28,23 @@ abstract Datum(DatumBase) from DatumBase to DatumBase {
 		
 		return handle(v);
 	}
+		
+	public static function asString(d:Datum):String {
+		return switch d {
+			case null | DNull: 'null';
+			case DBool(v): v ? 'true' : 'false';
+			case DNumber(v): '$v';
+			case DString(v): '"$v"';
+			case DArray(v): '[$MAKE_ARRAY,[' + [for(i in v) i.asString()].join(',') + ']]';
+			case DObject(v): '{' + [for(i in v) '"${i.name}":${i.value.asString()}'].join(',') + '}';
+			case DDate(v): '{"$$reql_type$$":"TIME","epoch_time":${v.getTime()/1000},"timezone":"+00:00"}';
+			case DBinary(v): '{"$$reql_type$$":"BINARY","data":"${Base64.encode(v)}"}';
+			case DJson(v): v;
+		}
+	}
 }
 
-enum DatumBase {
+enum Datum {
 	DNull;
 	DBool(v:Bool);
 	DNumber(v:Float);

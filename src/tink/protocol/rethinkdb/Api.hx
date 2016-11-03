@@ -1,1 +1,0 @@
-package tink.protocol.rethinkdb;
