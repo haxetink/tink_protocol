@@ -12,6 +12,10 @@ class DatumTools {
 		// this is the lazy way, we can probably use tink_typecrawler to convert at compile time
 		function handle(i:Dynamic) {
 			return if(i == null) DNull;
+			else if(Std.is(i, Term)) switch (i:Term) {
+				case TDatum(d): d;
+				default: throw 'Cannot convert non-datum term';
+			}
 			else if(Std.is(i, String)) DString(i);
 			else if(Std.is(i, Float)) DNumber(i);
 			else if(Std.is(i, Bool)) DBool(i);
