@@ -8,7 +8,7 @@ using tink.CoreApi;
 
 class DatumTools {
 	
-	public static inline function ofAny(v:Dynamic):Datum {
+	public static function ofAny(v:Dynamic):Datum {
 		// this is the lazy way, we can probably use tink_typecrawler to convert at compile time
 		function handle(i:Dynamic) {
 			return if(i == null) DNull;
@@ -18,6 +18,7 @@ class DatumTools {
 			else if(Std.is(i, Date)) DDate(i);
 			else if(Std.is(i, Bytes)) DBinary(i);
 			else if(Std.is(i, Array)) DArray([for(item in (i:Array<Dynamic>)) handle(item)]);
+			else if(Reflect.isEnumValue(i)) throw 'Cannot convert enum';
 			else {
 				var fields = Reflect.fields(i);
 				DObject([for(field in fields) new Named(field, handle(Reflect.field(i, field)))]);
@@ -32,7 +33,7 @@ class DatumTools {
 			case null | DNull: 'null';
 			case DBool(v): v ? 'true' : 'false';
 			case DNumber(v): '$v';
-			case DString(v): '"$v"';
+			case DString(v): haxe.Json.stringify(v);
 			case DArray(v): '[$MAKE_ARRAY,[' + [for(i in v) asString(i)].join(',') + ']]';
 			case DObject(v): '{' + [for(i in v) '"${i.name}":${asString(i.value)}'].join(',') + '}';
 			case DDate(v): '{"$$reql_type$$":"TIME","epoch_time":${v.getTime()/1000},"timezone":"+00:00"}';
