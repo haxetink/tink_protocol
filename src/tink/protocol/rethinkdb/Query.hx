@@ -44,14 +44,7 @@ class Query {
 	public function toBytes():Bytes {
 		var out = new BytesOutput();
 		
-		var serializedQuery;
-		serializedQuery = switch type {
-			case QStart(query): '[$START,${query.asString()},{}]';
-			case QContinue(t): '[$CONTINUE,[],{}]';
-			case QStop(t): '[$STOP,[],{}]';
-			case QNoreplyWait: '[$NOREPLY_WAIT,[],{}]';
-			case QServerInfo: '[$SERVER_INFO,[],{}]';
-		}
+		var serializedQuery = toString();
 		
 		out.writeInt32(token.high);
 		out.writeInt32(token.low);
@@ -62,6 +55,16 @@ class Query {
 		// trace([for(i in 0...12) bytes.get(i).hex(2)].join(',') + bytes.sub(12, bytes.length-12).toString());
 		
 		return bytes;
+	}
+	
+	public function toString() {
+		return switch type {
+			case QStart(query): '[$START,${query.asString()},{}]';
+			case QContinue(t): '[$CONTINUE,[],{}]';
+			case QStop(t): '[$STOP,[],{}]';
+			case QNoreplyWait: '[$NOREPLY_WAIT,[],{}]';
+			case QServerInfo: '[$SERVER_INFO,[],{}]';
+		}
 	}
 	
 	function get_term() {
