@@ -20,6 +20,7 @@ class DatumTools {
 			else if(Std.is(i, Bytes)) DBinary(i);
 			else if(Std.is(i, Array)) DArray([for(item in (i:Array<Dynamic>)) handle(item)]);
 			else if(Reflect.isEnumValue(i)) throw 'Cannot convert enum';
+			else if(Reflect.isFunction(i)) throw 'Cannot convert function';
 			else {
 				var fields = Reflect.fields(i);
 				DObject([for(field in fields) new Named(field, handle(Reflect.field(i, field)))]);
