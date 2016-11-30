@@ -29,7 +29,6 @@ class TestRethinkDB extends BuddySuite {
 					var n = 4;
 					client.connect(sender).forEach(function(bytes) {
 						var res:Response = bytes;
-						trace(res.json);
 						if(++c >= n+2) done();
 						return true;
 					});
