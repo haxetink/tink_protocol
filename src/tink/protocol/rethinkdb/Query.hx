@@ -23,10 +23,13 @@ abstract QueryToken(Int64) from Int64 to Int64 {
 				
 			Int64.make(counterHigh, counterLow);
 	}
+	
+	public inline function toString()
+		return @:privateAccess this.toString(); 
 }
 
 class Query {
-	public var token:Int64;
+	public var token:QueryToken;
 	public var type:QueryKind;
 	public var term(get, never):Term;
 	
