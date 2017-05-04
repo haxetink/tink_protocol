@@ -2,6 +2,6 @@
 -main RunTests
 -dce full
 
--lib buddy
+-lib tink_unittest
 -lib tink_tcp
 -lib scram

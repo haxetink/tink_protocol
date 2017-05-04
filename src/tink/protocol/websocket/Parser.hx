@@ -1,76 +1,63 @@
 package tink.protocol.websocket;
 
 import haxe.ds.Option;
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import tink.io.Buffer;
 import tink.io.StreamParser;
+import tink.Chunk;
+import tink.chunk.*;
 
 using tink.CoreApi;
 
-class Parser implements StreamParser<Bytes> {
+class Parser implements StreamParserObject<Chunk> {
 	var mask:Bool; // mask bit of the frame
 	var length = 0; // total length of frame
 	var required = 0; // required length for next read
-	var result:Option<Bytes>;
-	var out:BytesBuffer;
+	var out:Chunk;
 	
 	public function new() {
-		result = None;
 		required = 2;
+		out = Chunk.EMPTY;
 	}
 	
-	public function minSize()
-		return 8;
-		
-	public function eof() {
-		return switch result {
-			case Some(v): Success(v);
-			case None: Failure(new Error('Unexpected end of stream'));
+	public function eof(rest:ChunkCursor) {
+		return switch progress(rest) {
+			case Done(result): Success(result);
+			case Progressed: Failure(new Error('Unexpected end of input'));
+			case Failed(e): Failure(e);
 		}
 	}
 	
-	public function progress(buffer:Buffer) {
-		result = None;
-		buffer.writeTo(this);
-		return Success(result);
-	}
-	
-	function writeBytes(bytes:Bytes, start:Int, len:Int) {
-		if(len < required) return 0;
-		switch length {
+	public function progress(cursor:ChunkCursor) {
+		
+		if(cursor.length < required) return Progressed;
+		return switch length {
 			case 0:
-				var secondByte = bytes.get(start + 1);
+				cursor.next();
+				var secondByte = cursor.currentByte;
 				mask = secondByte >> 7 == 1;
 				required = switch secondByte & 127 {
 					case 127: length = -2; 8;
 					case 126: length = -1; 2;
-					case len: length = len + 2 + (mask ? 4 : 0); 0;
+					case len: length = len + 2 + (mask ? 4 : 0); length - 2;
 				}
-				out = new BytesBuffer();
-				out.addBytes(bytes, start, 2);
-				return 2;
+				cursor.next();
+				out = out & cursor.left();
+				Progressed;
 			
 			case -1 | -2:
 				length = 0;
-				for(i in 0...required) length = length << 8 + bytes.get(start + i);
-				var read = required;
-				length += 2 + read + (mask ? 4 : 0);
-				out.addBytes(bytes, start, read);
-				required = 0;
-				return read;
+				for(i in 0...required) {
+					length = length << 8 + cursor.currentByte;
+					cursor.next();
+				}
+				length += 2 + required + (mask ? 4 : 0);
+				required = length - 2 - required;
+				out = out & cursor.left();
+				Progressed;
 			
 			default:
+				out = out & cursor.right().slice(0, required + 1);
+				cursor.moveBy(required);
+				Done(out);
 		}
-		
-		inline function min(a:Int, b:Int) return a > b ? b : a;
-		var read = min(length - out.length, len);
-		out.addBytes(bytes, start, read);
-		if(out.length == length) {
-			result = Some(out.getBytes());
-			length = 0;
-			required = 2;
-		}
-		return read;
 	}
 }

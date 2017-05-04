@@ -1,8 +1,9 @@
 package tink.protocol;
 
-import haxe.io.Bytes;
-import tink.streams.Stream;
+import tink.Chunk;
+import tink.streams.RealStream;
 
-interface Protocol {
-	function connect(send:Stream<Bytes>):Stream<Bytes>;
+interface Protocol<In, Out> {
+	function raw(send:RealStream<Chunk>):RealStream<Chunk>;
+	function connect(send:RealStream<Out>):RealStream<In>;
 }

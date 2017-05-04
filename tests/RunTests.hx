@@ -1,8 +1,14 @@
 package;
 
-import buddy.*;
+import tink.testrunner.*;
+import tink.unit.*;
 
-class RunTests implements Buddy<[
-	TestRethinkDB,
-	TestWebSocket,
-]> {}
+
+class RunTests {
+	static function main() {
+		Runner.run(TestBatch.make([
+			// new TestRethinkDB(),
+			new TestWebSocket(),
+		])).handle(Runner.exit);
+	}
+}

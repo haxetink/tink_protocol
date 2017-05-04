@@ -1,0 +1,3 @@
+# @install: lix --silent download https://github.com/kevinresol/scram/archive/4fed02c3411de8650d25fb40c372e90892b1580e.tar.gz into scram/0.1.0/github/4fed02c3411de8650d25fb40c372e90892b1580e
+-D scram=0.1.0
+-cp ${HAXESHIM_LIBCACHE}/scram/0.1.0/github/4fed02c3411de8650d25fb40c372e90892b1580e/src
