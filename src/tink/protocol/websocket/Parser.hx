@@ -26,7 +26,6 @@ class Parser implements StreamParserObject<Chunk> {
 	}
 	
 	public function progress(cursor:ChunkCursor) {
-		trace('progress', cursor.length, required);
 		if(cursor.length < required) return Progressed;
 		return switch length {
 			case 0:

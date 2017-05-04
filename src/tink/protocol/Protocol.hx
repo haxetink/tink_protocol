@@ -1,9 +1,17 @@
 package tink.protocol;
 
-import tink.Chunk;
-import tink.streams.RealStream;
+import tink.io.StreamParser;
 
-interface Protocol<In, Out> {
-	function raw(send:RealStream<Chunk>):RealStream<Chunk>;
-	function connect(send:RealStream<Out>):RealStream<In>;
+using tink.CoreApi;
+using tink.io.Source;
+
+class Protocol {
+	// public static function wrap(parser:StreamParser<Chunk>, handler:Handler):tink.tcp.Handler {
+	// 	return function(i:tink.tcp.Incoming):Future<tink.tcp.Outgoing> {
+	// 		return Future.sync({
+	// 			stream: handler(i.stream.parseStream(parser)),
+	// 			allowHalfOpen: true,
+	// 		});
+	// 	}
+	// }
 }

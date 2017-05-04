@@ -4,14 +4,15 @@ import haxe.io.Bytes;
 import haxe.crypto.*;
 import tink.http.Request;
 import tink.http.Header;
+import tink.Url;
 
 class OutgoingHandshakeRequestHeader extends OutgoingRequestHeader {
 	
 	public var key(default, null):String;
 	public var accept(default, null):String;
 	
-	public function new(host, uri, ?key, ?fields) {
-		super(GET, host, uri, fields);
+	public function new(url:Url, ?key, ?fields) {
+		super(GET, url.pathWithQuery, null, fields);
 		
 		this.key = switch key {
 			case null: Base64.encode(Sha1.make(Bytes.ofString(Std.string(Math.random()))));
@@ -26,6 +27,7 @@ class OutgoingHandshakeRequestHeader extends OutgoingRequestHeader {
 			}
 		}
 		
+		fillHeader('host', url.host);
 		fillHeader('upgrade', 'websocket');
 		fillHeader('connection', 'upgrade');
 		fillHeader('sec-websocket-key', this.key);

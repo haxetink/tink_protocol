@@ -50,28 +50,28 @@ abstract Frame(FrameBase) from FrameBase to FrameBase {
 	// 	}
 	// }
 	
-	// @:from
-	// public static function fromMessage(message:Message):Frame {
-	// 	var opcode = 0;
-	// 	var payload = null;
-	// 	switch message {
-	// 		case Text(v):
-	// 			opcode = Text;
-	// 			payload = Bytes.ofString(v);
-	// 		case Binary(b):
-	// 			opcode = Binary;
-	// 			payload = b;
-	// 		case ConnectionClose:
-	// 			opcode = ConnectionClose;
-	// 		case Ping(b):
-	// 			opcode = Ping;
-	// 			payload = b;
-	// 		case Pong(b):
-	// 			opcode = Pong;
-	// 			payload = b;
-	// 	}
-	// 	return new FrameBase(true, false, false, false, opcode, false, payload.length, null, payload);
-	// }
+	public static function ofMessage(message:Message, ?maskingKey:Chunk):Frame {
+		var opcode = 0;
+		var payload = null;
+		switch message {
+			case Text(v):
+				opcode = Text;
+				payload = Bytes.ofString(v);
+			case Binary(b):
+				opcode = Binary;
+				payload = b;
+			case ConnectionClose:
+				opcode = ConnectionClose;
+			case Ping(b):
+				opcode = Ping;
+				payload = b;
+			case Pong(b):
+				opcode = Pong;
+				payload = b;
+		}
+		if(maskingKey != null) payload = Masker.mask(payload, maskingKey);
+		return new FrameBase(true, false, false, false, opcode, maskingKey == null ? Unmasked(payload) : Masked(payload, maskingKey));
+	}
 	
 	// public inline function unmask()
 	// 	maskWith(null);
