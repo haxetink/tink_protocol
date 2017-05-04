@@ -14,8 +14,7 @@ class Parser implements StreamParserObject<Chunk> {
 	var out:Chunk;
 	
 	public function new() {
-		required = 2;
-		out = Chunk.EMPTY;
+		reset();
 	}
 	
 	public function eof(rest:ChunkCursor) {
@@ -27,7 +26,7 @@ class Parser implements StreamParserObject<Chunk> {
 	}
 	
 	public function progress(cursor:ChunkCursor) {
-		
+		trace('progress', cursor.length, required);
 		if(cursor.length < required) return Progressed;
 		return switch length {
 			case 0:
@@ -55,9 +54,16 @@ class Parser implements StreamParserObject<Chunk> {
 				Progressed;
 			
 			default:
-				out = out & cursor.right().slice(0, required + 1);
+				var ret = Done(out & cursor.right().slice(0, required));
 				cursor.moveBy(required);
-				Done(out);
+				reset();
+				ret;
 		}
+	}
+	
+	function reset() {
+		out = Chunk.EMPTY;
+		length = 0;
+		required = 2;
 	}
 }

@@ -111,7 +111,7 @@ class TestWebSocket {
 	public function parseSingleFrame() {
 		var source:IdealSource = arrayToBytes([129, 131, 61]);
 		source = source.append(arrayToBytes([84, 35, 6, 112, 16, 109]));
-		source.parseStream(new Parser()).forEach(function(chunk:tink.Chunk) {
+		source.parseStream(new Parser()).forEach(function(chunk:Chunk) {
 			asserts.assert(chunk.toBytes().toHex() == '81833d54230670106d');
 			var frame:Frame = chunk;
 			asserts.assert(frame.fin == true);
@@ -123,6 +123,30 @@ class TestWebSocket {
 			return Resume;
 		}).handle(function(o) {
 			asserts.assert(o == Depleted);
+			asserts.done();
+		});
+		return asserts;
+	}
+	
+	@:include
+	public function parseConsecutiveFrame() {
+		var frame = [129, 131, 61, 84, 35, 6, 112, 16, 109];
+		var source:IdealSource = arrayToBytes(frame.concat(frame).concat(frame));
+		var num = 0;
+		source.parseStream(new Parser()).forEach(function(chunk:Chunk) {
+			asserts.assert(chunk.toBytes().toHex() == '81833d54230670106d');
+			var frame:Frame = chunk;
+			asserts.assert(frame.fin == true);
+			asserts.assert(frame.opcode == 1);
+			asserts.assert(frame.mask == true);
+			asserts.assert(frame.maskingKey.toHex() == '3d542306');
+			asserts.assert(frame.maskedPayload.toHex() == '70106d');
+			asserts.assert(frame.unmaskedPayload.toString() == 'MDN');
+			num++;
+			return Resume;
+		}).handle(function(o) {
+			asserts.assert(o == Depleted);
+			asserts.assert(num == 3);
 			asserts.done();
 		});
 		return asserts;
