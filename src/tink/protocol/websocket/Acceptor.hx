@@ -16,32 +16,23 @@ class Acceptor {
 		if(onError == null) onError = function(e) trace(e);
 		
 		return function(i:tink.tcp.Incoming):Future<tink.tcp.Outgoing> {
-			var trigger:SignalTrigger<Yield<Chunk, Noise>> = Signal.trigger();
-			var outgoing = {
-				stream: new SignalStream(trigger.asSignal()),
+			return Future.sync({
+				stream: Generator.stream(function(step) {
+					i.stream.parse(IncomingHandshakeRequestHeader.parser())
+						.handle(function(o) switch o {
+							case Success({a: header, b: rest}):
+								switch header.validate() {
+									case Success(_): // ok
+									case Failure(e): onError(e);
+								}
+								var reponseHeader = new OutgoingHandshakeResponseHeader(header.key);
+								step(Link((reponseHeader.toString():Chunk), handler(rest.parseStream(new Parser()))));
+							case Failure(e):
+								onError(e);
+						});
+				}),
 				allowHalfOpen: true,
-			}
-			
-			i.stream.parse(IncomingHandshakeRequestHeader.parser())
-				.handle(function(o) switch o {
-					case Success({a: header, b: rest}):
-						switch header.validate() {
-							case Success(_): // ok
-							case Failure(e): onError(e);
-						}
-						var reponseHeader = new OutgoingHandshakeResponseHeader(header.key);
-						trigger.trigger(Data(@:privateAccess Chunk.ofString(reponseHeader.toString())));
-						
-						// outgoing
-						var send = handler(rest.parseStream(new Parser()));
-						send.forEach(function(chunk) {
-							trigger.trigger(Data(chunk));
-							return Resume;
-						}).handle(function(_) trigger.trigger(End));
-					case Failure(e):
-						onError(e);
-				});
-			return Future.sync(outgoing);
+			});
 		}
 	}
 }
