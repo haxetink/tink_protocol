@@ -9,11 +9,10 @@ abstract IncomingHandshakeResponseHeader(ResponseHeader) from ResponseHeader to 
 	
 	public function validate(accept:String) {
 		if(this.statusCode != 101) return Failure(new Error('Unexpected response status code'));
-		switch this.byName('sec-websocket-accept') {
-			case Success(v) if(v == accept):
-			default: return Failure(new Error('Invalid accept'));
+		return switch this.byName('sec-websocket-accept') {
+			case Success(v) if(v == accept): Success(Noise);
+			default: Failure(new Error('Invalid accept'));
 		}
-		return Success(Noise);
 	}
 	
 	public static inline function parser():StreamParser<IncomingHandshakeResponseHeader>

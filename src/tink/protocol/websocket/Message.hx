@@ -14,8 +14,8 @@ enum Message {
 }
 
 class MessageRegrouper {
-	public static function get():Regrouper<Frame, Message, Error> {
-		return function(frames:Array<Frame>, s) {
+	public static var inst:Regrouper<Frame, Message, Error> =
+		function(frames:Array<Frame>, s) {
 			var last = frames[frames.length - 1];
 			if(!last.fin) return Untouched;
 			
@@ -40,5 +40,4 @@ class MessageRegrouper {
 					Message.Pong(mergeBytes());
 			}));
 		}
-	}
 }

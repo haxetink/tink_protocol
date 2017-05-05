@@ -1,13 +1,8 @@
 package;
 
 import haxe.io.Bytes;
-import tink.tcp.Connection;
-import tink.tcp.Server;
-import tink.url.Host;
 import tink.streams.Stream;
 import tink.streams.Accumulator;
-// import tink.protocol.websocket.Requester;
-// import tink.protocol.websocket.Responder;
 import tink.protocol.websocket.Acceptor;
 import tink.protocol.websocket.Connector;
 import tink.protocol.websocket.Message;
@@ -96,7 +91,7 @@ class TestWebSocket {
 		var n = 7;
 		var sender = new Accumulator();
 		var handler = Connector.wrap(url, function(stream) {
-			stream.map(Frame.fromChunk).regroup(MessageRegrouper.get())
+			stream.map(Frame.fromChunk).regroup(MessageRegrouper.inst)
 				.forEach(function(message:Message) {
 					switch message {
 						case Text(v): asserts.assert(v == 'payload' + ++c);
