@@ -91,7 +91,7 @@ class TestWebSocket {
 		var n = 7;
 		var sender = new Accumulator();
 		var handler = Connector.wrap(url, function(stream) {
-			stream.map(Frame.fromChunk).regroup(MessageRegrouper.inst)
+			MessageStream.ofChunkStream(stream)
 				.forEach(function(message:Message) {
 					switch message {
 						case Text(v): asserts.assert(v == 'payload' + ++c);

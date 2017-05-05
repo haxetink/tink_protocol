@@ -49,7 +49,7 @@ abstract Frame(FrameBase) from FrameBase to FrameBase {
 	// 	}
 	// }
 	
-	public static function ofMessage(message:Message, ?maskingKey:Chunk):Frame {
+	public static function ofMessage(message:Message, ?maskingKey:MaskingKey):Frame {
 		var opcode = 0;
 		var payload = null;
 		switch message {
@@ -102,7 +102,7 @@ class FrameBase {
 	public var opcode(default, null):Opcode;
 	public var mask(get, never):Bool;
 	public var payloadLength(get, never):Int;
-	public var maskingKey(get, null):Chunk;
+	public var maskingKey(get, null):MaskingKey;
 	public var payload(default, null):Payload;
 	public var maskedPayload(get, null):Chunk;
 	public var unmaskedPayload(get, null):Chunk;
@@ -144,7 +144,7 @@ class FrameBase {
 			if(mask) {
 				var key = bytes.sub(pos, 4);
 				pos += 4;
-				key;
+				MaskingKey.ofChunk(key);
 			} else null;
 			
 		// payload
@@ -178,7 +178,7 @@ class FrameBase {
 		}
 		
 		// masking key:
-		if(this.mask) out.addBytes(this.maskingKey, 0, 4);
+		if(this.mask) out.addBytes(this.maskingKey.toBytes(), 0, 4);
 		
 		// payload:
 		var payload = this.maskedPayload;
@@ -226,13 +226,13 @@ abstract Opcode(Int) from Int to Int {
 }
 
 enum Payload {
-	Masked(masked:Chunk, key:Chunk);
+	Masked(masked:Chunk, key:MaskingKey);
 	Unmasked(unmasked:Chunk);
 }
 
 class Masker {
 	
-	public static function mask(unmasked:Chunk, key:Chunk):Chunk {
+	public static function mask(unmasked:Chunk, key:MaskingKey):Chunk {
 		var masked = Bytes.alloc(unmasked.length);
 		var data = unmasked.toBytes().getData();
 		var key = key.toBytes().getData();
@@ -240,7 +240,7 @@ class Masker {
 		return masked;
 	}
 	
-	public static inline function unmask(masked:Chunk, key:Chunk):Chunk {
+	public static inline function unmask(masked:Chunk, key:MaskingKey):Chunk {
 		return mask(masked, key);
 	}
 		

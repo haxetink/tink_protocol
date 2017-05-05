@@ -2,7 +2,8 @@ package tink.protocol.websocket;
 
 import haxe.io.Bytes;
 
-abstract MaskingKey(Chunk) to Chunk {
+@:forward
+abstract MaskingKey(Chunk) {
 	public function new(a, b, c, d) {
 		var bytes = Bytes.alloc(4);
 		bytes.set(0, a);
@@ -10,6 +11,12 @@ abstract MaskingKey(Chunk) to Chunk {
 		bytes.set(2, c);
 		bytes.set(3, d);
 		this = bytes;
+	}
+	
+	@:from
+	public static function ofChunk(c:Chunk):MaskingKey {
+		if(c.length != 4) throw 'Invalid key length, should be 4';
+		return cast c;
 	}
 	
 	public static function random() {

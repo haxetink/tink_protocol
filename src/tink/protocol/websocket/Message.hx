@@ -13,8 +13,43 @@ enum Message {
 	Pong(b:Chunk);
 }
 
+@:forward
+abstract MessageStream<Quality>(Stream<Message, Quality>) from Stream<Message, Quality> to Stream<Message, Quality> {
+	@:from
+	public static inline function ofChunkStream<Q>(s:Stream<Chunk, Q>):MessageStream<Q>
+		return ofFrameStream(s.map(Frame.fromChunk));
+	@:from
+	public static inline function ofFrameStream<Q>(s:Stream<Frame, Q>):MessageStream<Q>
+		return s.regroup(MessageRegrouper.get());
+	@:to
+	public inline function toChunkStream():Stream<Chunk, Quality>
+		return toFrameStream().map(function(f:Frame) return f.toChunk());
+	@:to
+	public inline function toFrameStream():Stream<Frame, Quality>
+		return toFrameStreamWithKey(Random);
+	
+	public function toFrameStreamWithKey(key:KeyType):Stream<Frame, Quality>
+		return this.map(function(message) return Frame.ofMessage(message, switch key {
+			case None: null;
+			case Fixed(k): k;
+			case Random: MaskingKey.random();
+		}));
+}
+
+enum KeyType {
+	None;
+	Fixed(key:MaskingKey);
+	Random;
+}
+
 class MessageRegrouper {
-	public static var inst:Regrouper<Frame, Message, Error> =
+	public static function transform<Q>(s:Stream<Chunk, Q>)
+		return s.map(Frame.fromChunk).regroup(get());
+		
+	public static function get<Q>():Regrouper<Frame, Message, Q>
+		return cast inst;
+	
+	static var inst:Regrouper<Frame, Message, Noise> =
 		function(frames:Array<Frame>, s) {
 			var last = frames[frames.length - 1];
 			if(!last.fin) return Untouched;
