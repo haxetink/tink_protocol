@@ -3,12 +3,7 @@ package;
 import haxe.io.Bytes;
 import tink.streams.Stream;
 import tink.streams.Accumulator;
-import tink.protocol.websocket.Acceptor;
-import tink.protocol.websocket.Connector;
-import tink.protocol.websocket.Message;
-import tink.protocol.websocket.Frame;
-import tink.protocol.websocket.Parser;
-import tink.protocol.websocket.MaskingKey;
+import tink.protocol.websocket.*;
 import tink.Chunk;
 
 using tink.CoreApi;
@@ -101,14 +96,11 @@ class TestWebSocket {
 					return c < n ? Resume : Finish;
 				});
 			
-			return sender;
+			return MessageStream.lift(sender).toChunkStream();
 		});
 		var connection = tink.tcp.nodejs.NodejsConnector.connect({host: host, port: port}, handler);
 		
-		for(i in 0...n) {
-			var frame = Frame.ofMessage(Text('payload' + (i + 1)), MaskingKey.random());
-			sender.yield(Data(frame.toChunk()));
-		}
+		for(i in 0...n) sender.yield(Data(Message.Text('payload' + (i + 1))));
 	}
 	
 	function arrayToBytes(a:Array<Int>):Chunk {
