@@ -62,7 +62,7 @@ class TestWebSocket {
 		return asserts;
 	}
 	
-	public function server() {
+	public function tcpServer() {
 		
 		var handler = Acceptor.wrap(function(stream) {
 			// sends back the same frame unmasked
@@ -77,6 +77,53 @@ class TestWebSocket {
 			case Failure(e):
 				asserts.fail(e);
 		});
+		
+		return asserts;
+	}
+	
+	
+	public function http() {
+		
+		var handler = Acceptor.http(
+			function(req) return Future.sync(('done':tink.http.Response.OutgoingResponse)),
+			function(stream) return stream.map(function(chunk:Chunk) return Frame.fromChunk(chunk).unmask().toChunk()).idealize(null)
+		);
+		
+		var container = new tink.http.containers.NodeContainer(18087);
+		container.run(handler).handle(function(o) switch o {
+			case Running(_):
+				_echo('http://localhost:18087', 'localhost', 18087, asserts);
+				
+			case Shutdown: 
+				throw 'unreachable';
+				
+			case Failed(e):
+				asserts.fail(e);
+		});
+		
+		
+		return asserts;
+	}
+	
+	
+	public function tcpContainer() {
+		
+		var handler = Acceptor.http(
+			function(req) return Future.sync(('done':tink.http.Response.OutgoingResponse)),
+			function(stream) return stream.map(function(chunk:Chunk) return Frame.fromChunk(chunk).unmask().toChunk()).idealize(null)
+		);
+		
+		var container = new tink.http.containers.TcpContainer(tink.tcp.nodejs.NodejsAcceptor.inst.bind.bind(18089));
+		container.run(handler).handle(function(o) switch o {
+			case Running(_):
+				
+			case Shutdown: 
+				_echo('http://localhost:18089', 'localhost', 18089, asserts);
+				
+			case Failed(e):
+				asserts.fail(e);
+		});
+		
 		
 		return asserts;
 	}
@@ -98,7 +145,8 @@ class TestWebSocket {
 			
 			return MessageStream.lift(sender).toChunkStream();
 		});
-		var connection = tink.tcp.nodejs.NodejsConnector.connect({host: host, port: port}, handler);
+		
+		tink.tcp.nodejs.NodejsConnector.connect({host: host, port: port}, handler).handle(function(o) trace(Std.string(o)));
 		
 		for(i in 0...n) sender.yield(Data(Message.Text('payload' + (i + 1))));
 	}

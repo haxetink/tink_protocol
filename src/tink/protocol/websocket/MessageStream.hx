@@ -18,7 +18,7 @@ abstract MessageStream<Quality>(Stream<Message, Quality>) from Stream<Message, Q
 	
 	@:to
 	public inline function toChunkStream():Stream<Chunk, Quality>
-		return toFrameStream().map(function(f:Frame) return f.toChunk());
+		return toChunkStreamWithKey(Random);
 	
 	@:to
 	public inline function toFrameStream():Stream<Frame, Quality>

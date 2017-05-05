@@ -5,6 +5,8 @@ import tink.streams.Stream;
 import tink.streams.IdealStream;
 import tink.streams.RealStream;
 import tink.io.StreamParser;
+import tink.http.Request;
+import tink.http.Response;
 import tink.Url;
 import tink.Chunk;
 
@@ -33,6 +35,22 @@ class Acceptor {
 				}),
 				allowHalfOpen: true,
 			});
+		}
+	}
+	
+	public static function http(handler:tink.http.Handler, ws:tink.protocol.Handler):tink.http.Handler {
+		return function(req:IncomingRequest):Future<OutgoingResponse> {
+			var header:IncomingHandshakeRequestHeader = req.header;
+			return switch [header.validate(), req.body] {
+				case [Success(_), Plain(src)]:
+					src.all().handle(function(c) trace('chunk:' + c.sure()));
+					Future.sync(new OutgoingResponse(
+						new OutgoingHandshakeResponseHeader(header.key),
+						(ws(src.parseStream(new Parser())):Stream<Chunk, Noise>)
+					));
+				default:
+					handler.process(req);
+			}
 		}
 	}
 }
