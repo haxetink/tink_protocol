@@ -21,7 +21,6 @@ abstract Frame(FrameBase) from FrameBase to FrameBase {
 	@:from
 	public static inline function fromChunk(v:Chunk)
 		return FrameBase.fromChunk(v);
-		
 	
 	// public static function toMessage(frames:Array<Frame>):Option<Message> {
 	// 	var last = frames[frames.length - 1];
@@ -71,6 +70,14 @@ abstract Frame(FrameBase) from FrameBase to FrameBase {
 		}
 		if(maskingKey != null) payload = Masker.mask(payload, maskingKey);
 		return new FrameBase(true, false, false, false, opcode, maskingKey == null ? Unmasked(payload) : Masked(payload, maskingKey));
+	}
+	
+	
+	public function unmask():Frame {
+		return switch this.payload {
+			case Unmasked(_): this;
+			case Masked(p, k): new FrameBase(this.fin, this.rsv1, this.rsv2, this.rsv3, this.opcode, Unmasked(Masker.unmask(p, k)));
+		}
 	}
 	
 	// public inline function unmask()

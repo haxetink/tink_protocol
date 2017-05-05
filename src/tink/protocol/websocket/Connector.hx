@@ -11,9 +11,9 @@ import tink.Chunk;
 using tink.CoreApi;
 using tink.io.Source;
 
-class Acceptor {
-	public static function wrap(handler:tink.protocol.Handler, ?onError:Error->Void):tink.tcp.Handler {
-		if(onError == null) onError = function(e) trace(e);
+class Connector {
+	public static function wrap(url:Url, handler:tink.protocol.Handler, ?onError:Error->Void):tink.tcp.Handler {
+		if(onError == null) onError = function(_) {}
 		
 		return function(i:tink.tcp.Incoming):Future<tink.tcp.Outgoing> {
 			var trigger:SignalTrigger<Yield<Chunk, Noise>> = Signal.trigger();
@@ -22,15 +22,17 @@ class Acceptor {
 				allowHalfOpen: true,
 			}
 			
-			i.stream.parse(IncomingHandshakeRequestHeader.parser())
+			var header = new OutgoingHandshakeRequestHeader(url);
+			var accept = header.accept;
+			trigger.trigger(Data(@:privateAccess Chunk.ofString(header.toString())));
+			
+			i.stream.parse(IncomingHandshakeResponseHeader.parser())
 				.handle(function(o) switch o {
 					case Success({a: header, b: rest}):
-						switch header.validate() {
+						switch header.validate(accept) {
 							case Success(_): // ok
 							case Failure(e): onError(e);
 						}
-						var reponseHeader = new OutgoingHandshakeResponseHeader(header.key);
-						trigger.trigger(Data(@:privateAccess Chunk.ofString(reponseHeader.toString())));
 						
 						// outgoing
 						var send = handler(rest.parseStream(new Parser()));

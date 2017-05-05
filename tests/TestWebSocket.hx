@@ -8,12 +8,15 @@ import tink.streams.Stream;
 import tink.streams.Accumulator;
 // import tink.protocol.websocket.Requester;
 // import tink.protocol.websocket.Responder;
+import tink.protocol.websocket.Acceptor;
+import tink.protocol.websocket.Connector;
 import tink.protocol.websocket.Message;
 import tink.protocol.websocket.Frame;
 import tink.protocol.websocket.Parser;
 import tink.protocol.websocket.MaskingKey;
 import tink.Chunk;
 
+using tink.CoreApi;
 using tink.io.Source;
 
 @:asserts
@@ -137,13 +140,13 @@ class TestWebSocket {
 		return asserts;
 	}
 	
-	@:include
+	
 	public function echo() {
 		var host = 'http://echo.websocket.org';
 		var c = 0;
 		var n = 7;
 		var sender = new Accumulator();
-		var handler = tink.protocol.websocket.Acceptor.wrap(host, function(stream) {
+		var handler = Connector.wrap(host, function(stream) {
 			stream
 				.map(function(chunk:Chunk):Frame return chunk)
 				.regroup(MessageRegrouper.get())
@@ -159,14 +162,61 @@ class TestWebSocket {
 			return sender;
 		});
 		var connection = tink.tcp.nodejs.NodejsConnector.connect({host: host, port: 80}, handler);
-		// var connection = Connection.establish({host: host, port: 80});
-		// var ws = new Requester(connection, 'http://$host');
 		
 		for(i in 0...n) {
 			var frame = Frame.ofMessage(Text('payload' + (i + 1)), MaskingKey.random());
 			var chunk = frame.toChunk();
 			sender.yield(Data(chunk));
 		}
+		return asserts;
+	}
+	
+	@:include
+	public function server() {
+		
+		var handler = Acceptor.wrap(function(stream) {
+			return stream
+				.map(function(chunk:Chunk) {
+					// sends back the same frame unmasked
+					var frame:Frame = chunk;
+					return frame.unmask().toChunk();
+				}).idealize(null);
+		});
+		
+		tink.tcp.nodejs.NodejsAcceptor.inst.bind(18088).handle(function(o) switch o {
+			case Success(openPort):
+				openPort.setHandler(handler);
+				var host = 'http://localhost:18088';
+				var c = 0;
+				var n = 7;
+				var sender = new Accumulator();
+				var handler = Connector.wrap(host, function(stream) {
+					stream
+						.map(function(chunk:Chunk):Frame return chunk)
+						.regroup(MessageRegrouper.get())
+						.forEach(function(message:Message) {
+							switch message {
+								case Text(v): asserts.assert(v == 'payload' + ++c);
+								default: asserts.fail('Unexpected message');
+							}
+							if(c == n) asserts.done();
+							return c < n ? Resume : Finish;
+						});
+					
+					return sender;
+				});
+				var connection = tink.tcp.nodejs.NodejsConnector.connect({host: 'localhost', port: 18088}, handler);
+				
+				for(i in 0...n) {
+					var frame = Frame.ofMessage(Text('payload' + (i + 1)), MaskingKey.random());
+					var chunk = frame.toChunk();
+					sender.yield(Data(chunk));
+				}
+				
+			case Failure(e):
+				asserts.fail(e);
+		});
+		
 		return asserts;
 	}
 	
