@@ -21,80 +21,7 @@ using tink.io.Source;
 
 @:asserts
 class TestWebSocket {
-	public function new() {
-		// describe("WebSocket", {
-			
-		// 	describe("Requester", {
-		// 		it("should work with the echo server", function(done) {
-		// 			var host = 'echo.websocket.org';
-		// 			var connection = Connection.establish({host: host, port: 80});
-		// 			var ws = new Requester(connection, 'http://$host');
-					
-		// 			var c = 0;
-		// 			var n = 7;
-		// 			var sender = new Accumulator();
-		// 			ws.connect(sender).forEach(function(bytes) {
-		// 				switch Frame.toMessage([Frame.fromBytes(bytes)]) {
-		// 					case Some(Text(v)): v.should.be('payload' + ++c);
-		// 					default: fail('Unexpected message');
-		// 				}
-		// 				if(c == n) done();
-		// 				return c < n;
-		// 			});
-					
-		// 			var key = Bytes.alloc(4);
-		// 			for(i in 0...n) {
-		// 				var frame = Frame.fromMessage(Text('payload' + (i + 1)));
-		// 				frame.maskWith(key);
-		// 				sender.yield(Data(frame.toBytes()));
-		// 			}
-		// 		});
-		// 	});
-			
-		// 	describe("Responder", {
-		// 		it("should work with the Requester", function(done) {
-		// 			Server.bind(18088).handle(function(o) switch o {
-		// 				case Success(server):
-		// 					server.connected.handle(function(connection) {
-		// 						var c = new Responder(connection);
-		// 						var sender = new Accumulator();
-		// 						c.connect(sender).forEach(function(bytes) {
-		// 							// send back an identical but unmasked frame
-		// 							var frame:Frame = bytes;
-		// 							frame.unmask();
-		// 							sender.yield(Data(frame.toBytes()));
-		// 							return true;
-		// 						});
-		// 					});
-							
-		// 					var ws = new Requester(Connection.establish(18088), 'http://localhost');
-
-		// 					var c = 0;
-		// 					var n = 7;
-		// 					var sender = new Accumulator();
-		// 					ws.connect(sender).forEach(function(bytes) {
-		// 						switch Frame.toMessage([Frame.fromBytes(bytes)]) {
-		// 							case Some(Text(v)): v.should.be('payload' + ++c);
-		// 							default: fail('Unexpected message');
-		// 						}
-		// 						if(c == n) done();
-		// 						return c < n;
-		// 					});
-							
-		// 					var key = Bytes.alloc(4);
-		// 					for(i in 0...n) {
-		// 						var frame = Frame.fromMessage(Text('payload' + (i + 1)));
-		// 						frame.maskWith(key);
-		// 						sender.yield(Data(frame.toBytes()));
-		// 					}
-							
-		// 				case Failure(f): fail(f);
-		// 			});
-		// 		});
-		// 	});
-		// });
-		
-	}
+	public function new() {}
 	
 	@:variant((this.arrayToBytes([129, 131, 61]):tink.io.Source.IdealSource).append(this.arrayToBytes([84, 35, 6, 112, 16, 109])), '81833d54230670106d', '3d542306', '70106d', 'MDN')
 	@:variant(this.arrayToBytes([129, 131, 61, 84, 35, 6, 112, 16, 109]), '81833d54230670106d', '3d542306', '70106d', 'MDN')
@@ -140,16 +67,36 @@ class TestWebSocket {
 		return asserts;
 	}
 	
-	
 	public function echo() {
-		var host = 'http://echo.websocket.org';
+		_echo('http://echo.websocket.org', 'echo.websocket.org', 80, asserts);
+		return asserts;
+	}
+	
+	public function server() {
+		
+		var handler = Acceptor.wrap(function(stream) {
+			// sends back the same frame unmasked
+			return stream.map(function(chunk:Chunk) return Frame.fromChunk(chunk).unmask().toChunk()).idealize(null);
+		});
+		
+		tink.tcp.nodejs.NodejsAcceptor.inst.bind(18088).handle(function(o) switch o {
+			case Success(openPort):
+				openPort.setHandler(handler);
+				_echo('http://localhost:18088', 'localhost', 18088, asserts);
+				
+			case Failure(e):
+				asserts.fail(e);
+		});
+		
+		return asserts;
+	}
+	
+	function _echo(url, host, port, asserts:tink.unit.AssertionBuffer) {
 		var c = 0;
 		var n = 7;
 		var sender = new Accumulator();
-		var handler = Connector.wrap(host, function(stream) {
-			stream
-				.map(function(chunk:Chunk):Frame return chunk)
-				.regroup(MessageRegrouper.get())
+		var handler = Connector.wrap(url, function(stream) {
+			stream.map(Frame.fromChunk).regroup(MessageRegrouper.get())
 				.forEach(function(message:Message) {
 					switch message {
 						case Text(v): asserts.assert(v == 'payload' + ++c);
@@ -161,63 +108,12 @@ class TestWebSocket {
 			
 			return sender;
 		});
-		var connection = tink.tcp.nodejs.NodejsConnector.connect({host: host, port: 80}, handler);
+		var connection = tink.tcp.nodejs.NodejsConnector.connect({host: host, port: port}, handler);
 		
 		for(i in 0...n) {
 			var frame = Frame.ofMessage(Text('payload' + (i + 1)), MaskingKey.random());
-			var chunk = frame.toChunk();
-			sender.yield(Data(chunk));
+			sender.yield(Data(frame.toChunk()));
 		}
-		return asserts;
-	}
-	
-	@:include
-	public function server() {
-		
-		var handler = Acceptor.wrap(function(stream) {
-			return stream
-				.map(function(chunk:Chunk) {
-					// sends back the same frame unmasked
-					var frame:Frame = chunk;
-					return frame.unmask().toChunk();
-				}).idealize(null);
-		});
-		
-		tink.tcp.nodejs.NodejsAcceptor.inst.bind(18088).handle(function(o) switch o {
-			case Success(openPort):
-				openPort.setHandler(handler);
-				var host = 'http://localhost:18088';
-				var c = 0;
-				var n = 7;
-				var sender = new Accumulator();
-				var handler = Connector.wrap(host, function(stream) {
-					stream
-						.map(function(chunk:Chunk):Frame return chunk)
-						.regroup(MessageRegrouper.get())
-						.forEach(function(message:Message) {
-							switch message {
-								case Text(v): asserts.assert(v == 'payload' + ++c);
-								default: asserts.fail('Unexpected message');
-							}
-							if(c == n) asserts.done();
-							return c < n ? Resume : Finish;
-						});
-					
-					return sender;
-				});
-				var connection = tink.tcp.nodejs.NodejsConnector.connect({host: 'localhost', port: 18088}, handler);
-				
-				for(i in 0...n) {
-					var frame = Frame.ofMessage(Text('payload' + (i + 1)), MaskingKey.random());
-					var chunk = frame.toChunk();
-					sender.yield(Data(chunk));
-				}
-				
-			case Failure(e):
-				asserts.fail(e);
-		});
-		
-		return asserts;
 	}
 	
 	function arrayToBytes(a:Array<Int>):Chunk {
