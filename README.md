@@ -1,3 +1,7 @@
 # Tink Protocol
 
-Collection of protocols
+Experimental collection of protocols. Code may move to separate repo once matured.
+
+See:
+
+- https://github.com/haxetink/tink_websocket
